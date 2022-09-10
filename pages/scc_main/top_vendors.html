@@ -1,0 +1,21 @@
+<blockquote>
+    <strong>Top Five Vendors'
+    2022
+    Contracts Costs</strong>
+    <table class = "table table-striped">
+    <thead>
+      <tr>
+        <th>Vendor Name</th>
+        <th>2022 Costs for Vendor</th>
+      </tr>
+    </thead>
+    <tbody>
+        {% for vendor in top_vendors %}
+        <tr>
+          <td>{{ vendor.name }}</td>
+          <td>{{ vendor.amount }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+    </table>
+</blockquote>

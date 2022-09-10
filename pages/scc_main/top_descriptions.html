@@ -1,0 +1,19 @@
+<p><blockquote>
+  <strong>Top Five Descriptions' Total (All Years) Contracts Costs</strong>
+  <table class = "table table-striped">
+    <thead>
+      <tr>
+        <th>Description</th>
+        <th>Total Costs for Description</th>
+      </tr>
+    </thead>
+    <tbody>
+        {% for desc in top_descs %}
+        <tr>
+          <td>{{ desc.name }}</td>
+          <td>{{ desc.amount }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+  </table>
+</blockquote></p>
