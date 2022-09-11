@@ -1,19 +1,17 @@
 <blockquote>
-  <strong>Top Five Agencies'
-    2022
-    Contracts Costs (*)</strong>
+  <strong>Top Five Agencies' {{ current_year }} Contracts Costs (*)</strong>
   <table class = "table table-striped">
     <thead>
       <tr>
         <th>Description</th>
-        <th>2022 Costs for Agency</th>
+        <th>{{ current_year }} Costs for Agency</th>
       </tr>
     </thead>
     <tbody>
       {% for agency in top_agencies %}
       <tr>
         <td>{{ agency.name }}</td>
-        <td>{{ agency.amount }}</td>
+        <td style = "white-space: nowrap;">{{ agency.amount }}</td>
       </tr>
       {% endfor %}
     </tbody>

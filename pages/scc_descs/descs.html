@@ -13,7 +13,7 @@
         <tr>
             <th>Description</th>
             <th>Vendors</th>
-            <th>2022<br/>Costs</th>
+            <th>{{ current_year }}<br/>Costs</th>
             <th>Total<br/>Costs</th>
             <th>Earliest<br/>Effective<br/>Date</th>
             <th>Latest<br/>Expiry<br/>Date</th>
@@ -35,7 +35,7 @@
             <td>{{ desc.exp_date }}</td>
             <td>
                 {% for agency in desc.agencies %}
-                    <li> {{ agency.name }}</li>
+                    <li>{{ agency.name }}</li>
                 {% endfor %}
             </td>
         </tr>

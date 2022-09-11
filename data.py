@@ -68,7 +68,7 @@ def build_scc_main():
     from contracts c1, contract_years y1, vendors v1
     where c1.pk = y1.contract_pk
     and c1.vendor_pk = v1.pk
-    and c1.month_pk = __MONTH_PK__ and y1.year = __YEAR__
+    and c1.month_pk = __MONTH_PK__ and y1.year = __LATEST_YEAR__
     group by v1.pk order by total_value desc limit 5
     """
 
@@ -106,10 +106,11 @@ def build_scc_main():
 
     [month_pk, month] = latest_month()
     context['current_month'] = month
+    context['current_year'] = month.split('-')[0]
 
     sql = top_vendors_sql
     sql = sql.replace('__MONTH_PK__', str(month_pk))
-    sql = sql.replace('__YEAR__', month.split('-')[0])
+    sql = sql.replace('__LATEST_YEAR__', month.split('-')[0])
 
     rows = conn.execute(sql).fetchall()
     context['top_vendors'] = fill_in_table(rows, {'pk':0, 'name': 1, 'amount': 2})
@@ -274,6 +275,7 @@ def build_scc_agencies():
     c1.pk = y1.contract_pk and
     y1.year = __LATEST_YEAR__ and
     c1.month_pk = __MONTH_PK__ group by b1.pk
+    order by b1.unit_name
     """
 
     vendors_for_agencies_sql = """
@@ -327,8 +329,8 @@ def build_scc_descs():
     min(c1.effective_date), max(c1.expir_date)
     from contracts c1, contract_years y1
     where c1.pk = y1.contract_pk and 
-    c1.month_pk = 32 and
-    y1.year = 2022
+    c1.month_pk = __MONTH_PK__ and
+    y1.year = __LATEST_YEAR__
     group by c1.commodity_desc
     order by c1.commodity_desc;
     """

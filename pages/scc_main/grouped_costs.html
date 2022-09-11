@@ -1,17 +1,13 @@
 <p>
   <blockquote>
-    <strong>All Contracts Grouped By
-      2022
-      Cost</strong>
+    <strong>All Contracts Grouped By {{ current_year }} Cost</strong>
     <table class = "table table-striped">
       <thead>
         <tr>
           <th>Minimum (&gt;=)</th>
           <th>Maximum (&lt;)</th>
           <th>Count</th>
-          <th>Sum of
-            2022
-            Contract Costs</th>
+          <th>Sum of {{ current_year }} Contract Costs</th>
         </tr>
       </thead>
       <tbody>
@@ -20,7 +16,7 @@
           <td>{{ cost.min }}</td>
           <td>{{ cost.max }}</td>
           <td>{{ cost.count }}</td>
-          <td>{{ cost.sum }}</td>
+          <td style = "white-space: nowrap;">{{ cost.sum }}</td>
         </tr>
         {% endfor %}
       </tbody>
