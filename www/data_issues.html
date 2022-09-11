@@ -1,0 +1,113 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2//EN">
+<html>
+<head>
+    <title>SCC Active Contracts - Data Issues</title>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css"
+          integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous"/>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap-theme.min.css"
+          integrity="sha384-rHyoN1iRsVXV4nD0JutlnGaslCJuC7uwjduW9SVrLvRYooPp2bWYgmgJQIXwl/Sp" crossorigin="anonymous"/>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"
+            integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous">
+    </script>
+</head>
+<body>
+    <div style="padding: 25px 25px 25px 25px;">
+    <p>
+        The data is stored in a MySQL database with
+        <a href="https://opencalaccess.org/scc_contracts/schema.html">this schema</a>.
+    </p>
+    <h2>Importing</h2>
+    <p>
+        The Procurement Office published two monthly reports which describe the active
+        contracts. They publish these on an "Active Contracts" page. The reports may or
+        may not be published every month. Some have been missed, perhaps because of
+        staff shortages associated with the Covid-19 pandemic. The reports for a given
+        month seem to come out between 6 or 7 and 9 weeks after the end of the month.
+    </p>
+    <p>
+        The import scripts do some data correcting, but it is not much. There are many
+        vendor names, for example, which are obviously incomplete. As I am able, I find
+        the proper names for these vendors and I display these vendors with their proper
+        names. I do not replace the bad names in the original data. Instead I add a row
+        to a table which joins with the <code>vendors</code> table to provide the correction.
+        I try to make all corrections by adding correct data, but not by removing the original
+        data. If I replaced these original values, I would be breaking the connection
+        between my data and the data published by the Procurement Office. If I make fixes,
+        I always want these to verifiable now and in the future against the Procurement
+        Office data.
+    </p>
+    <h2>Contract Months</h2>
+    <p>
+        The main <code>contracts</code> table contains the expected information about a
+        contract but it also points to the month in which a contract appeared. This
+        causes some duplication. For example, if a contract ran from January 1, 2021 to May
+        31, 2022 and if every month had a exported PO report, then there would be 17 rows
+        in the contracts table for this contract. If the contract was written and never
+        changed, then all 17 rows would be exactly the same. Many contracts, though, do
+        change and I am keeping track of when those changes appear in the exported data.
+    </p>
+    <p>
+        At any one time, the contracts application is showing data relevant to the last
+        month for which data is available. There may be delays in my processing this data.
+        For example, as of now (2022-09-11), the application shows data for June of 2022.
+        Data for July of 2022 has become available sometime in the last week, but that data
+        has not yet been imported.
+    </p>
+    <h2>Contract Total Values vs Year Values</h2>
+    <p>
+        In most places in the contracts application, one will see both the total value
+        of a contract or the year value of a contract. At some points, only one of these
+        will be displayed. What do these mean?
+    </p>
+    <p>
+        Most contracts cover multiple years. The only pieces of information about this
+        being exported are the "Effective Date", the "Expiration Date", and the "Contract
+        Value" of the contract. So, I am doing what I can. To determine the "year value"
+        for a contract for a particular year, I divide the start and stop dates of the
+        contract into their years and apportion the total contract to each year. For
+        example, if a contract is due to pay $2 million and its effective date was
+        2021-04-01 and its expiration date was 2022-03-31. So, the the portion of the
+        contract period in 2020 covered 9 months, the period covered in 2021 was 12 months
+        and the period covered in 2022 was 3 months. So, the year values would be:
+<pre>
+total value      $ 2,000,000.00    covers 2020-04-01 to 2022-03-31
+------------------------------------------------------------------
+2020 value           750,000.00    covers 2020-04-01 to 2020-12-31
+2021 value         1,000,000.00    covers 2021-01-01 to 2021-12-31
+2022 value           250,000.00    covers 2022-01-01 to 2022-03-31</pre>
+        The calculations are actually based precisely on the number of days of the contract
+        period covered in each year, but this example hopefully makes clear how the contract
+        value is divided up for reporting.
+    </p>
+    <p>
+        Note that my "year value" calculation has absolutely nothing to do with when the
+        County is actually spending money on a contract. I am sure that a check register
+        somewhere keeps track of precisely when checks are being sent out for these contracts.
+        Is there some way that the County links these payments to the contract behind them
+        to enable oversight? One would hope so, but I am not sure how or if the public can
+        get the specific information about these payments from the contract information.
+    </p>
+    <h2>Contract ID Numbers</h2>
+    <p>
+        There are three kinds of ID numbers for contracts. The reasons for this have to do
+        with what system was being used to track a contract when it was first seen. In the
+        monthly "Contracts Report", these IDs appear under the "Contract ID Ariba" and "PO ID)"
+        heading. In the "SA BC Report", the ID appears under the "Contract ID (PO ID)" heading.
+        In how many contracts are which IDs defined? The data below shows the usage
+        of these IDs in the data for June of 2022.
+    <p>
+    <pre>
+    count    contract_id   ariba_id     sap_id
+    1327      NON_NULL      NULL         NULL
+     127      NULL          NON_NULL     NON_NULL
+     496      NULL          NON_NULL     NULL
+     271      NULL          NULL         NON_NULL</pre>
+    </p>
+    <p>
+    What do these ID numbers really mean? I am not curious about this. I have observed
+    that a "contract_id, ariba_id, sap_id" triplet uniquely identifes a contract and
+    that is enough.
+    </p>
+    </div>
+</body>
+</html>

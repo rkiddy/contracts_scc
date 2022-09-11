@@ -1,0 +1,203 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2//EN">
+<html>
+<head>
+    <title>SCC Active Contracts - Data Schema</title>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css"
+          integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous"/>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap-theme.min.css"
+          integrity="sha384-rHyoN1iRsVXV4nD0JutlnGaslCJuC7uwjduW9SVrLvRYooPp2bWYgmgJQIXwl/Sp" crossorigin="anonymous"/>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"
+            integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous">
+    </script>
+</head>
+<body>
+<div style="padding: 25px 25px 25px 25px;">
+    <p>
+    The tables are stored in a mysql database.
+    </p>
+    <h2>Tables</h2>
+<pre>
++----------------------------+
+| Tables_in_ca_scc_contracts |
++----------------------------+
+| budget_unit_alts           |
+| budget_unit_headings       |
+| budget_unit_joins          |
+| budget_unit_replaces       |
+| budget_units               |
+| contract_uniqs             |
+| contract_years             |
+| contracts                  |
+| months                     |
+| source_errors              |
+| source_lines               |
+| sources                    |
+| supporting_doc_requests    |
+| supporting_docs            |
+| vendor_infos               |
+| vendors                    |
++----------------------------+
+</pre>
+    <h2>Table Definitons</h2>
+<pre>
+CREATE TABLE `budget_unit_alts` (
+  `pk` int NOT NULL,
+  `budget_unit_pk` int DEFAULT NULL,
+  `alt_budget_unit` varchar(127) DEFAULT NULL,
+  PRIMARY KEY (`pk`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci
+
+CREATE TABLE `budget_unit_headings` (
+  `pk` int NOT NULL,
+  `name` varchar(127) DEFAULT NULL,
+  PRIMARY KEY (`pk`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3
+
+CREATE TABLE `budget_unit_joins` (
+  `unit_pk` int NOT NULL,
+  `contract_pk` int NOT NULL,
+  PRIMARY KEY (`unit_pk`,`contract_pk`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci
+
+CREATE TABLE `budget_unit_replaces` (
+  `pk` int NOT NULL,
+  `bad_name` varchar(127) DEFAULT NULL,
+  `bad_num` int DEFAULT NULL,
+  `good_name` varchar(127) DEFAULT NULL,
+  `good_num` int DEFAULT NULL,
+  PRIMARY KEY (`pk`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3
+
+CREATE TABLE `budget_units` (
+  `pk` int NOT NULL,
+  `unit_name` varchar(127) DEFAULT NULL,
+  `unit_num` int DEFAULT NULL,
+  `name_in_budget` varchar(127) DEFAULT NULL,
+  PRIMARY KEY (`pk`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci
+
+CREATE TABLE `contract_uniqs` (
+  `pk` int NOT NULL,
+  `ariba_id` varchar(31) DEFAULT NULL,
+  `sap_id` varchar(31) DEFAULT NULL,
+  `contract_id` varchar(31) DEFAULT NULL,
+  PRIMARY KEY (`pk`),
+  UNIQUE KEY `ariba_id` (`ariba_id`,`sap_id`,`contract_id`),
+  KEY `ariba_id_2` (`ariba_id`,`sap_id`,`contract_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3
+
+CREATE TABLE `contract_years` (
+  `pk` int NOT NULL,
+  `contract_pk` int DEFAULT NULL,
+  `year` int DEFAULT NULL,
+  `contract_value` bigint DEFAULT NULL,
+  PRIMARY KEY (`pk`),
+  KEY `contract_pk` (`contract_pk`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3
+
+CREATE TABLE `contracts` (
+  `pk` int NOT NULL,
+  `owner_name` varchar(63) DEFAULT NULL,
+  `ariba_id` varchar(31) DEFAULT NULL,
+  `sap_id` varchar(31) DEFAULT NULL,
+  `contract_id` varchar(31) DEFAULT NULL,
+  `contract_type` char(2) DEFAULT NULL,
+  `vendor_name` varchar(127) DEFAULT NULL,
+  `vendor_pk` int DEFAULT NULL,
+  `effective_date` char(10) DEFAULT NULL,
+  `expir_date` char(10) DEFAULT NULL,
+  `contract_value` bigint DEFAULT NULL,
+  `commodity_desc` varchar(1027) DEFAULT NULL,
+  `authorized_budget_units` varchar(1027) DEFAULT NULL,
+  `month_pk` int DEFAULT NULL,
+  `source_pk` int DEFAULT NULL,
+  `line_num` int DEFAULT NULL,
+  `uniq_pk` int DEFAULT NULL,
+  PRIMARY KEY (`pk`),
+  KEY `month_pk` (`month_pk`),
+  KEY `vendor_name` (`vendor_name`),
+  KEY `vendor_pk` (`vendor_pk`),
+  KEY `contract_value` (`contract_value`),
+  KEY `ariba_id` (`ariba_id`,`sap_id`,`contract_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci
+
+CREATE TABLE `months` (
+  `pk` int NOT NULL,
+  `month` char(7) DEFAULT NULL,
+  `approved` bigint DEFAULT NULL,
+  PRIMARY KEY (`pk`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci
+
+CREATE TABLE `source_errors` (
+  `pk` int NOT NULL,
+  `source_pk` int DEFAULT NULL,
+  `contract_pk` int DEFAULT NULL,
+  `line_num` int DEFAULT NULL,
+  `line` varchar(1024) DEFAULT NULL,
+  `is_fixed` tinyint DEFAULT NULL,
+  PRIMARY KEY (`pk`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3
+*************************** 1. row ***************************
+       Table: source_lines
+Create Table: CREATE TABLE `source_lines` (
+  `pk` int NOT NULL,
+  `source_pk` int DEFAULT NULL,
+  `line_num` int DEFAULT NULL,
+  `line` varchar(10230) DEFAULT NULL,
+  PRIMARY KEY (`pk`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci
+
+CREATE TABLE `sources` (
+  `pk` int NOT NULL,
+  `source_url` varchar(511) DEFAULT NULL,
+  `month_pk` int DEFAULT NULL,
+  `content` mediumblob,
+  PRIMARY KEY (`pk`),
+  KEY `month_pk` (`month_pk`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci
+
+CREATE TABLE `supporting_doc_requests` (
+  `pk` int NOT NULL,
+  `contract_uniq_pk` int DEFAULT NULL,
+  `ariba_id` varchar(31) DEFAULT NULL,
+  `contract_id` varchar(31) DEFAULT NULL,
+  `sap_id` varchar(31) DEFAULT NULL,
+  `vendor_pk` int DEFAULT NULL,
+  `request_entity` varchar(63) DEFAULT NULL,
+  `requested` char(10) DEFAULT NULL,
+  `received` char(10) DEFAULT NULL,
+  PRIMARY KEY (`pk`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci
+
+CREATE TABLE `supporting_docs` (
+  `pk` int NOT NULL,
+  `contract_uniq_pk` int DEFAULT NULL,
+  `vendor_pk` int DEFAULT NULL,
+  `contract_id` varchar(31) DEFAULT NULL,
+  `sap_id` varchar(31) DEFAULT NULL,
+  `ariba_id` varchar(31) DEFAULT NULL,
+  `url` varchar(1023) DEFAULT NULL,
+  `request_pk` int DEFAULT NULL,
+  PRIMARY KEY (`pk`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci
+
+CREATE TABLE `vendor_infos` (
+  `pk` int NOT NULL,
+  `vendor_pk` int DEFAULT NULL,
+  `key_name` varchar(63) DEFAULT NULL,
+  `value_str` varchar(1023) DEFAULT NULL,
+  `created` bigint DEFAULT NULL,
+  `updated` int DEFAULT NULL,
+  PRIMARY KEY (`pk`),
+  KEY `vendor_pk` (`vendor_pk`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci
+
+CREATE TABLE `vendors` (
+  `pk` int NOT NULL,
+  `name` varchar(127) DEFAULT NULL,
+  PRIMARY KEY (`pk`),
+  UNIQUE KEY `name` (`name`),
+  KEY `name_2` (`name`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3</pre>
+</body>
+</html>
