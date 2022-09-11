@@ -38,7 +38,7 @@ def build(page):
         return build_scc_main()
 
     if page == 'scc_agencies':
-        return {}
+        return build_scc_agencies()
 
     if page == 'scc_costs':
         return {}
@@ -248,5 +248,62 @@ def build_scc_vendors():
                 vendor['agencies'][agency['unit_pk']] = {'pk': agency['unit_pk'], 'name': agency['unit_name']}
 
         vendor['agencies'] = list(vendor['agencies'].values())
+
+    return context
+
+
+def build_scc_agencies():
+
+    agencies_sql = """
+    select b1.unit_name, b1.pk,
+    min(c1.effective_date), max(c1.expir_date),
+    sum(c1.contract_value), sum(y1.contract_value)
+    from budget_units b1, budget_unit_joins j1, contracts c1, contract_years y1
+    where b1.pk = j1.unit_pk and
+    j1.contract_pk = c1.pk and
+    c1.pk = y1.contract_pk and
+    y1.year = __LATEST_YEAR__ and
+    c1.month_pk = __MONTH_PK__ group by b1.pk
+    """
+
+    agencies_vendors_sql = """
+    select b1.pk, v1.pk, v1.name
+    from budget_units b1, budget_unit_joins j1, contracts c1, vendors v1
+    where b1.pk = j1.unit_pk and
+    j1.contract_pk = c1.pk and
+    c1.vendor_pk = v1.pk and
+    c1.month_pk = __MONTH_PK__
+    """
+
+    context = dict()
+
+    [month_pk, month] = latest_month()
+    context['current_month'] = month
+    context['current_year'] = month.split('-')[0]
+
+    sql = agencies_sql
+    sql = sql.replace('__MONTH_PK__', str(month_pk))
+    sql = sql.replace('__LATEST_YEAR__', month.split('-')[0])
+    rows = conn.execute(sql).fetchall()
+    cols = {'name': 0, 'agency_pk': 1, 'eff_date': 2, 'exp_date': 3, 'sum_all': 4, 'sum_year': 5}
+    context['agencies'] = fill_in_table(rows, cols)
+
+    for agency in context['agencies']:
+        agency['sum_all'] = money(agency['sum_all'])
+        agency['sum_year'] = money(agency['sum_year'])
+        agency['vendors'] = dict()
+
+    sql = agencies_vendors_sql
+    sql = sql.replace('__MONTH_PK__', str(month_pk))
+    rows = conn.execute(sql).fetchall()
+    agency_vendors = fill_in_table(rows, {'agency_pk': 0, 'vendor_pk': 1, 'vendor_name': 2})
+
+    for agency in context['agencies']:
+        for vendor in agency_vendors:
+            if agency['agency_pk'] == vendor['agency_pk']:
+                pk = vendor['vendor_pk']
+                agency['vendors'][pk] = {'pk': pk, 'name': vendor['vendor_name']}
+
+        agency['vendors'] = list(agency['vendors'].values())
 
     return context
