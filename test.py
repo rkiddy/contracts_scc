@@ -11,6 +11,10 @@ import data
 # pprint.pprint(data.build('scc_vendors'), compact=True)
 # print("")
 
-print("scc_agencies:")
-pprint.pprint(data.build('scc_agencies'), compact=True)
+# print("scc_agencies:")
+# pprint.pprint(data.build('scc_agencies'), compact=True)
+# print("")
+
+print("scc_descs:")
+pprint.pprint(data.build('scc_descs'), compact=True)
 print("")

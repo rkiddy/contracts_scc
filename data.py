@@ -32,6 +32,16 @@ def fill_in_table(rows, columns):
     return result
 
 
+def order_dicts_by_key(data, key, make_keys_unique=False):
+    results = list()
+    values = sorted(list(set([ d[key] for d in data ])))
+    for value in values:
+        for data_dict in data:
+            if data_dict[key] == value:
+                results.append(data_dict)
+    return results
+
+
 def build(page):
 
     if page == 'scc_main':
@@ -47,7 +57,7 @@ def build(page):
         return build_scc_vendors()
 
     if page == 'scc_descs':
-        return {}
+        return build_scc_descs()
 
 
 def build_scc_main():
@@ -155,7 +165,7 @@ def build_scc_main():
 
 def build_scc_vendors():
 
-    vendors_by_letter = """
+    vendors_by_letter_sql = """
     select v1.name, v1.pk, min(c1.effective_date) as eff_date,
     max(c1.expir_date) as expir_date, sum(c1.contract_value) as sum_all,
     sum(y1.contract_value) as sum_year
@@ -168,7 +178,7 @@ def build_scc_vendors():
     group by v1.pk order by v1.name
     """
 
-    non_alpha_vendors = """
+    non_alpha_vendors_sql = """
     select v1.name, v1.pk, min(c1.effective_date) as eff_date,
     max(c1.expir_date) as expir_date, sum(c1.contract_value) as sum_all,
     sum(y1.contract_value) as sum_year
@@ -181,7 +191,7 @@ def build_scc_vendors():
     group by v1.pk order by v1.name
     """
 
-    all_vendors = """
+    all_vendors_sql = """
     select v1.name, v1.pk, min(c1.effective_date) as eff_date,
     max(c1.expir_date) as expir_date, sum(c1.contract_value) as sum_all,
     sum(y1.contract_value) as sum_year
@@ -193,7 +203,7 @@ def build_scc_vendors():
     group by v1.pk order by v1.name
     """
 
-    agencies_by_vendor = """
+    agencies_for_vendor_sql = """
     select v1.pk as vendor_pk, b1.pk as unit_pk, b1.unit_name as name
     from vendors v1, contracts c1, budget_unit_joins j1, budget_units b1
     where v1.name like '__FIRST_LETTER__%%' and
@@ -217,11 +227,11 @@ def build_scc_vendors():
     context['current_year'] = month.split('-')[0]
 
     if first_letter == 'NA':
-        sql = non_alpha_vendors
+        sql = non_alpha_vendors_sql
     elif first_letter == 'All':
-        sql = all_vendors
+        sql = all_vendors_sql
     else:
-        sql = vendors_by_letter
+        sql = vendors_by_letter_sql
 
     sql = sql.replace('__MONTH_PK__', str(month_pk))
     sql = sql.replace('__FIRST_LETTER__', first_letter)
@@ -236,7 +246,7 @@ def build_scc_vendors():
         vendor['vendor_pk'] = int(vendor['vendor_pk'])
         vendor['agencies'] = dict()
 
-    sql = agencies_by_vendor
+    sql = agencies_for_vendor_sql
     sql = sql.replace('__MONTH_PK__', str(month_pk))
     sql = sql.replace('__FIRST_LETTER__', first_letter)
     rows = conn.execute(sql).fetchall()
@@ -266,7 +276,7 @@ def build_scc_agencies():
     c1.month_pk = __MONTH_PK__ group by b1.pk
     """
 
-    agencies_vendors_sql = """
+    vendors_for_agencies_sql = """
     select b1.pk, v1.pk, v1.name
     from budget_units b1, budget_unit_joins j1, contracts c1, vendors v1
     where b1.pk = j1.unit_pk and
@@ -293,17 +303,94 @@ def build_scc_agencies():
         agency['sum_year'] = money(agency['sum_year'])
         agency['vendors'] = dict()
 
-    sql = agencies_vendors_sql
+    sql = vendors_for_agencies_sql
     sql = sql.replace('__MONTH_PK__', str(month_pk))
     rows = conn.execute(sql).fetchall()
-    agency_vendors = fill_in_table(rows, {'agency_pk': 0, 'vendor_pk': 1, 'vendor_name': 2})
+    vendors = fill_in_table(rows, {'agency_pk': 0, 'vendor_pk': 1, 'vendor_name': 2})
 
     for agency in context['agencies']:
-        for vendor in agency_vendors:
+        for vendor in vendors:
             if agency['agency_pk'] == vendor['agency_pk']:
                 pk = vendor['vendor_pk']
                 agency['vendors'][pk] = {'pk': pk, 'name': vendor['vendor_name']}
 
         agency['vendors'] = list(agency['vendors'].values())
+
+    return context
+
+
+def build_scc_descs():
+
+    descs_sql = """
+    select c1.commodity_desc,
+    sum(c1.contract_value), sum(y1.contract_value),
+    min(c1.effective_date), max(c1.expir_date)
+    from contracts c1, contract_years y1
+    where c1.pk = y1.contract_pk and 
+    c1.month_pk = 32 and
+    y1.year = 2022
+    group by c1.commodity_desc
+    order by c1.commodity_desc;
+    """
+
+    agencies_for_descs_sql = """
+    select c1.commodity_desc, b1.pk, b1.unit_name
+    from contracts c1, budget_unit_joins j1, budget_units b1
+    where c1.pk = j1.contract_pk and j1.unit_pk = b1.pk and
+    c1.month_pk = __MONTH_PK__
+    """
+
+    vendors_fpr_descs_sql = """
+    select c1.commodity_desc, v1.pk, v1.name
+    from contracts c1, vendors v1
+    where c1.month_pk = __MONTH_PK__ and c1.vendor_pk = v1.pk
+    """
+
+    context = dict()
+
+    [month_pk, month] = latest_month()
+    context['current_month'] = month
+    context['current_year'] = month.split('-')[0]
+
+    context = dict()
+
+    sql = descs_sql
+    sql = sql.replace('__MONTH_PK__', str(month_pk))
+    sql = sql.replace('__LATEST_YEAR__', month.split('-')[0])
+    rows = conn.execute(sql).fetchall()
+    cols = {'description': 0, 'sum_all': 1, 'sum_year': 2, 'eff_date': 3, 'exp_date': 4}
+    context['descs'] = fill_in_table(rows, cols)
+
+    for desc in context['descs']:
+        desc['sum_all'] = money(desc['sum_all'])
+        desc['sum_year'] = money(desc['sum_year'])
+        desc['vendors'] = dict()
+        desc['agencies'] = dict()
+
+    sql = vendors_fpr_descs_sql
+    sql = sql.replace('__MONTH_PK__', str(month_pk))
+    rows = conn.execute(sql).fetchall()
+    vendors = fill_in_table(rows, {'description': 0, 'vendor_pk': 1, 'vendor_name': 2})
+
+    for desc in context['descs']:
+        for vendor in vendors:
+            if desc['description'] == vendor['description']:
+                pk = vendor['vendor_pk']
+                desc['vendors'][pk] = {'pk': pk, 'name': vendor['vendor_name']}
+
+        desc['vendors'] = list(desc['vendors'].values())
+
+    sql = agencies_for_descs_sql
+    sql = sql.replace('__MONTH_PK__', str(month_pk))
+    rows = conn.execute(sql).fetchall()
+    agencies = fill_in_table(rows, {'description': 0, 'agency_pk': 1, 'agency_name': 2})
+
+    for desc in context['descs']:
+        for agency in agencies:
+            if desc['description'] == agency['description']:
+                pk = agency['agency_pk']
+                desc['agencies'][pk] = {'pk': pk, 'name': agency['agency_name']}
+
+        desc['agencies'] = list(desc['agencies'].values())
 
     return context
