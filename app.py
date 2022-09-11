@@ -7,9 +7,11 @@ import data
 
 env = jinja2.Environment(loader=jinja2.FileSystemLoader("pages"))
 
+
 @app.route('/')
 def hello_world():
     return '<h2>Hello, World!</h2>'
+
 
 @app.route('/contracts/scc')
 def contracts_scc():
@@ -17,11 +19,20 @@ def contracts_scc():
     context = data.build('scc_main')
     return main.render(**context)
 
+
 @app.route('/contracts/scc/vendors')
 def contracts_vendors():
     vendors = env.get_template('scc_vendors/vendors.html')
     context = data.build('scc_vendors')
     return vendors.render(**context)
+
+
+@app.route("/contracts/scc/vendors/<first_letter>")
+def contracts_vendors_ltr(first_letter):
+    vendors = env.get_template('scc_vendors/vendors.html')
+    context = data.build('scc_vendors')
+    return vendors.render(**context)
+
 
 @app.route('/contracts/scc/agencies')
 def contracts_agencies():
@@ -29,11 +40,13 @@ def contracts_agencies():
     context = data.build('scc_agencies')
     return agencies.render(**context)
 
+
 @app.route('/contracts/scc/costs')
 def contracts_costs():
     costs = env.get_template('scc_costs/costs.html')
     context = data.build('scc_costs')
     return costs.render(**context)
+
 
 @app.route('/contracts/scc/descs')
 def contracts_descs():

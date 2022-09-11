@@ -1,44 +1,40 @@
 <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2//EN">
 <html>
-  <head>
+<head>
     <title>Santa Clara County Active Contracts</title>
-    <link rel = "stylesheet" href = "https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity = "sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin = "anonymous" />
-    <link rel = "stylesheet" href = "https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap-theme.min.css" integrity = "sha384-rHyoN1iRsVXV4nD0JutlnGaslCJuC7uwjduW9SVrLvRYooPp2bWYgmgJQIXwl/Sp" crossorigin = "anonymous" />
-    <script src = "https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity = "sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin = "anonymous">
-    </script>
-  </head>
-  <body>
-    <div style = "padding: 25px 25px 25px 25px;">
-      <p align = "right">
-        Reported: {{ current_month }}
-      </p>
-      {% include "scc_main/intro.html" %}
-      <p>
+    {% include "styles.html" %}
+</head>
+<body>
+<div style="padding: 25px 25px 25px 25px;">
+    {% include "curr_month.html" %}
+    {% include "scc_main/intro.html" %}
+    <p>
         <a href="/app/contracts/scc/vendors">Contracts Grouped by Vendor</a>
-      </p>
-      {% include "scc_main/top_vendors.html" %}
-      <p>
+    </p>
+    {% include "scc_main/top_vendors.html" %}
+    <p>
         <a href="/app/contracts/scc/agencies">Contracts Grouped by Agency</a>
-      </p>
-      {% include "scc_main/top_agencies.html" %}
-      <p>
+    </p>
+    {% include "scc_main/top_agencies.html" %}
+    <p>
         <a href="/app/contracts/scc/costs">Contracts Grouped by Cost</a>
-      </p>
-      {% include "scc_main/grouped_costs.html" %}
-      <p>
+    </p>
+    {% include "scc_main/grouped_costs.html" %}
+    <p>
         <a href="/app/contracts/scc/descs">Contracts Grouped by Description</a>
-      </p>
-      {% include "scc_main/top_descriptions.html" %}
-      <p>
+    </p>
+    {% include "scc_main/top_descriptions.html" %}
+    <p>
         <!-- replace this with a 'find contracts by id' page -->
-        <form name="f_67" method="post" action="/cgi-bin/WebObjects/app.woa/1/wo/skqda8Ymhn92e8esyG8FU0/0.67">Find Contracts By ID:
-          <input type="text" name="67.1" />
-          <input type="submit" value="Find" name="67.3" />
-        </form>
-          <hr />
-          {% include "scc_main/sources.html" %}
-          {% include "footer.html" %}
-      </p>
-    </div>
-  </body>
+    <form name="f_67" method="post" action="/cgi-bin/WebObjects/app.woa/1/wo/skqda8Ymhn92e8esyG8FU0/0.67">Find Contracts
+        By ID:
+        <input type="text" name="67.1"/>
+        <input type="submit" value="Find" name="67.3"/>
+    </form>
+    <hr/>
+    {% include "scc_main/sources.html" %}
+    {% include "footer.html" %}
+    </p>
+</div>
+</body>
 </html>
