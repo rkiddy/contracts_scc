@@ -1,7 +1,6 @@
 
-from sqlalchemy import create_engine, inspect
-
 from flask import request
+from sqlalchemy import create_engine, inspect
 
 engine = create_engine('mysql+pymysql://ray:alexna11@localhost/ca_scc_contracts')
 conn = engine.connect()

@@ -1,10 +1,11 @@
-from flask import Flask
-app = Flask(__name__)
+import re
 
 import jinja2
+from flask import Flask
 
 import data
 
+app = Flask(__name__)
 env = jinja2.Environment(loader=jinja2.FileSystemLoader("pages"))
 
 
@@ -27,11 +28,14 @@ def contracts_vendors():
     return vendors.render(**context)
 
 
-@app.route("/contracts/scc/vendors/<first_letter>")
-def contracts_vendors_ltr(first_letter):
-    vendors = env.get_template('scc_vendors/vendors.html')
-    context = data.build('scc_vendors')
-    return vendors.render(**context)
+@app.route("/contracts/scc/vendors/<param>")
+def contracts_vendors_ltr(param):
+    if not re.match("^[A-Z]$", param) and param not in ['All', 'NA']:
+        raise Exception("Invalid choice for vendor prefix")
+    else:
+        vendors = env.get_template('scc_vendors/vendors.html')
+        context = data.build('scc_vendors')
+        return vendors.render(**context)
 
 
 @app.route('/contracts/scc/agencies')
