@@ -75,6 +75,9 @@ def build(page):
     if page == 'scc_descs':
         return build_scc_descs()
 
+    if page == 'scc_contract':
+        return build_contract()
+
 
 def build_scc_main():
 
@@ -231,12 +234,13 @@ def build_scc_vendors():
     j1.unit_pk = b1.pk
     """
 
-    p = request.path
-
-    if p.endswith('vendors'):
+    try:
+        if request.path.endswith('vendors'):
+            first_letter = 'A'
+        else:
+            first_letter = request.path.split('/')[-1].replace('/', '')
+    except:
         first_letter = 'A'
-    else:
-        first_letter = p.split('/')[-1].replace('/', '')
 
     context = dict()
 
@@ -345,7 +349,7 @@ def build_scc_descs():
     sum(c1.contract_value), sum(y1.contract_value),
     min(c1.effective_date), max(c1.expir_date)
     from contracts c1, contract_years y1
-    where c1.pk = y1.contract_pk and 
+    where c1.pk = y1.contract_pk and
     c1.month_pk = __MONTH_PK__ and
     y1.year = __LATEST_YEAR__
     group by c1.commodity_desc
@@ -510,5 +514,126 @@ def build_contract_list():
             contract['agencies'] = list(contract['agencies'].values())
 
         context['contracts'] = contracts
+
+    return context
+
+
+def build_contract():
+
+    try:
+        contract_pk = request.path.split('/')[-1]
+    except:
+        contract_pk = '75169'
+
+    contract_sql = """
+    select c1.pk,
+    c1.contract_id, c1.ariba_id, c1.sap_id,
+    c1.vendor_pk, v1.name,
+    y1.contract_value, c1.contract_value,
+    effective_date, expir_date, commodity_desc
+    from contracts c1, contract_years y1, vendors v1
+    where c1.pk = __CONTRACT_PK__ and
+    c1.pk = y1.contract_pk and
+    y1.year = __LATEST_YEAR__ and
+    c1.vendor_pk = v1.pk and
+    c1.month_pk = __MONTH_PK__
+    """
+
+    contract_agencies_sql = """
+    select c1.pk, b1.pk, b1.unit_name
+    from contracts c1, budget_unit_joins j1, budget_units b1
+    where c1.pk = j1.contract_pk and j1.unit_pk = b1.pk and
+    c1.month_pk = __MONTH_PK__
+    """
+
+    context = dict()
+
+    [month_pk, month] = latest_month()
+    context['current_month'] = month
+    context['current_year'] = month.split('-')[0]
+
+    sql = contract_sql
+    sql = sql.replace('__MONTH_PK__', str(month_pk))
+    sql = sql.replace('__LATEST_YEAR__', month.split('-')[0])
+    sql = sql.replace('__CONTRACT_PK__', contract_pk)
+
+    rows = conn.execute(sql).fetchall()
+    cols = {'pk': 0,
+            'cID': 1,
+            'aID': 2,
+            'sID': 3,
+            'vendor_pk': 4,
+            'vendor_name': 5,
+            'sum_year': 6,
+            'sum_all': 7,
+            'eff_date': 8,
+            'exp_date': 9,
+            'description': 10}
+
+    contracts = fill_in_table(rows, cols)
+
+    if not contracts:
+        raise Exception(f"no contract data found for pk: {contract_pk}")
+
+    contracts[0]['sum_year'] = money(contracts[0]['sum_year'])
+    contracts[0]['sum_all'] = money(contracts[0]['sum_all'])
+    contracts[0]['agencies'] = dict()
+
+    contract = contracts[0]
+
+    sql = contract_agencies_sql
+    sql = sql.replace('__MONTH_PK__', str(month_pk))
+    rows = conn.execute(sql).fetchall()
+    agencies = fill_in_table(rows, {'contract_pk': 0, 'agency_pk': 1, 'agency_name': 2})
+
+    for agency in agencies:
+        if contract['pk'] == agency['contract_pk']:
+            pk = contract['pk']
+            contract['agencies'][pk] = {'pk': pk, 'name': agency['agency_name']}
+
+    contract['agencies'] = list(contract['agencies'].values())
+
+    context['contract'] = contract
+
+    contract_vendor_info_sql = """
+    select key_name, value_str from vendor_infos
+    where vendor_pk = __VENDOR_PK__
+    """
+
+    sql = contract_vendor_info_sql
+    sql = sql.replace('__VENDOR_PK__', str(contract['vendor_pk']))
+
+    rows = conn.execute(sql).fetchall()
+    vendor_infos = fill_in_table(rows, {'key_name': 0, 'value_str': 1})
+
+    if vendor_infos:
+        contract['vendor_infos'] = vendor_infos
+
+    contract_supporting_docs_sql = """
+    select url from supporting_docs
+    where __CONTRACT_ID_QUAL__ and
+    __ARIBA_ID_QUAL__ and
+    __SAP_ID_QUAL__
+    """
+
+    sql = contract_supporting_docs_sql
+    if contract['cID']:
+        sql = sql.replace('__CONTRACT_ID_QUAL__', f"contract_id = '{contract['cID']}'")
+    else:
+        sql = sql.replace('__CONTRACT_ID_QUAL__', f"contract_id is NULL")
+    if contract['aID']:
+        sql = sql.replace('__ARIBA_ID_QUAL__', f"ariba_id = '{contract['aID']}'")
+    else:
+        sql = sql.replace('__ARIBA_ID_QUAL__', f"ariba_id is NULL")
+    if contract['sID']:
+        sql = sql.replace('__SAP_ID_QUAL__', f"sap_id = '{contract['sID']}'")
+    else:
+        sql = sql.replace('__SAP_ID_QUAL__', f"sap_id is NULL")
+
+    rows = conn.execute(sql).fetchall()
+    supporting_docs = fill_in_table(rows, {'url': 0})
+
+    if supporting_docs:
+        context['contract']['supporting_docs'] = supporting_docs
 
     return context

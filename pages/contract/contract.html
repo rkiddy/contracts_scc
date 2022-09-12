@@ -1,0 +1,63 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2//EN">
+<html>
+<head>
+    <title>Santa Clara County Active Contracts</title>
+    {% include "styles.html" %}
+</head>
+<body>
+<div style="padding: 25px 25px 25px 25px;">
+    {% include "top_nav.html" %}
+    {% include "curr_month.html" %}
+    <table class="table table-striped">
+        <tr style="white-space: nowrap;">
+            <th>Contract ID</th>
+            <th>Vendor</th>
+            <th>{{ current_year }} Cost</th>
+            <th>Total Cost</th>
+            <th>Effective Date</th>
+            <th>Expiry Date</th>
+            <th>Agencies</th>
+            <th>Description</th>
+        </tr>
+        <tr>
+            <td style = "white-space: nowrap;">{% include "contracts/contract_id.html" %}</td>
+            <td>{{ contract.vendor_name }}</td>
+            <td style = "white-space: nowrap;">{{ contract.sum_year }}</td>
+            <td style = "white-space: nowrap;">{{ contract.sum_all }}</td>
+            <td>{{ contract.eff_date }}</td>
+            <td>{{ contract.exp_date }}</td>
+            <td>
+                <ul>
+                {% for agency in contract.agencies %}
+                    <li>{{ agency.name }}</li>
+                {% endfor %}
+                </ul>
+            </td>
+            <td>{{ contract.description }}</td>
+        </tr>
+    </table>
+    {% if contract.vendor_infos %}
+    <table class="table table-striped">
+        <caption>Vendor Info</caption>
+        {% for info in contract.vendor_infos %}
+        <tr>
+            <td>{{ info.key_name }}</td>
+            <td>{{ info.value_str }}</td>
+        </tr>
+        {% endfor %}
+    </table>
+    {% endif %}
+    {% if contract.supporting_docs %}
+    <table class="table table-striped">
+        <caption>Supporting Documents</caption>
+        {% for doc in contract.supporting_docs %}
+        <tr>
+            <td><a href="{{ doc.url }}" target = "blank">{{ doc.url }}</a></td>
+        </tr>
+        {% endfor %}
+    </table>
+    {% endif %}
+    {% include "footer.html" %}
+</div>
+</body>
+</html>

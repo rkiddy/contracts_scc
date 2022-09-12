@@ -70,3 +70,10 @@ def contracts_descs():
     descs = env.get_template('scc_descs/descs.html')
     context = data.build('scc_descs')
     return descs.render(**context)
+
+
+@app.route('/contracts/scc/contract/<param>')
+def contracts_contract(param):
+    contract = env.get_template('contract/contract.html')
+    context = data.build('scc_contract')
+    return contract.render(**context)
