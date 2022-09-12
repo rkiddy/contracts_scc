@@ -15,6 +15,7 @@ def hello_world():
 
 
 @app.route('/contracts/scc')
+@app.route('/contracts/scc/')
 def contracts_scc():
     main = env.get_template('scc_main/scc.html')
     context = data.build('scc_main')
@@ -22,6 +23,7 @@ def contracts_scc():
 
 
 @app.route('/contracts/scc/vendors')
+@app.route('/contracts/scc/vendors/')
 def contracts_vendors():
     vendors = env.get_template('scc_vendors/vendors.html')
     context = data.build('scc_vendors')
@@ -29,7 +31,7 @@ def contracts_vendors():
 
 
 @app.route("/contracts/scc/vendors/<param>")
-def contracts_vendors_ltr(param):
+def contracts_vendors_by_letter(param):
     if not re.match("^[A-Z]$", param) and param not in ['All', 'NA']:
         raise Exception("Invalid choice for vendor prefix")
     else:
@@ -39,6 +41,7 @@ def contracts_vendors_ltr(param):
 
 
 @app.route('/contracts/scc/agencies')
+@app.route('/contracts/scc/agencies/')
 def contracts_agencies():
     agencies = env.get_template('scc_agencies/agencies.html')
     context = data.build('scc_agencies')
@@ -46,13 +49,23 @@ def contracts_agencies():
 
 
 @app.route('/contracts/scc/costs')
+@app.route('/contracts/scc/costs/')
 def contracts_costs():
-    costs = env.get_template('scc_costs/costs.html')
+    costs = env.get_template('contracts/contracts_found.html')
+    context = data.build('scc_costs')
+    return costs.render(**context)
+
+
+@app.route('/contracts/scc/costs/<param>')
+def contracts_costs_by_bucket(param):
+    # allow any type of parameter for now.
+    costs = env.get_template('contracts/contracts_found.html')
     context = data.build('scc_costs')
     return costs.render(**context)
 
 
 @app.route('/contracts/scc/descs')
+@app.route('/contracts/scc/descs/')
 def contracts_descs():
     descs = env.get_template('scc_descs/descs.html')
     context = data.build('scc_descs')

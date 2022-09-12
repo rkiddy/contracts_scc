@@ -1,0 +1,44 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2//EN">
+<html>
+<head>
+    <title>Santa Clara County Active Contracts</title>
+    {% include "styles.html" %}
+</head>
+<body>
+<div style="padding: 25px 25px 25px 25px;">
+    {% include "top_nav.html" %}
+    {% include "curr_month.html" %}
+    <table>
+        <tr>
+            <td>0 - 1.00</td><td>1.00 - 100.00</td><td>100.00 - 1000.00</td><td>1000.00 - 10,000.00</td><td>10,000.00 - 100,000.00</td><td>100,000.00 - 1,000,000.00</td><td>1,000,000.00 - 10,000,000.00</td>
+        </tr>
+    </table>
+        <table class="table table-striped">
+        <tr style="white-space: nowrap;">
+            <th>Contract ID</th>
+            <th>Vendor</th>
+            <th>{{ current_year }} Cost</th>
+            <th>Total Cost</th>
+            <th>Effective Date</th>
+            <th>Expiry Date</th>
+            <th>Agencies</th>
+            <th>Description</th>
+        </tr>
+        {% for contract in contracts %}
+            <tr>
+                <td style = "white-space: nowrap;">{% include "contracts/contract_id.html" %}</td>
+                <td>{{ contract.vendor_name }}</td>
+                <td style = "white-space: nowrap;">{{ contract.sum_year }}</td>
+                <td style = "white-space: nowrap;">{{ contract.sum_all }}</td>
+                <td>{{ contract.eff_date }}</td>
+                <td>{{ contract.exp_date }}</td>
+                <td>agencies</td>
+                <td>{{ contract.description }}</td>
+            </tr>
+        {% endfor %}
+        </table>
+    {% include "footer.html" %}
+    </p>
+</div>
+</body>
+</html>

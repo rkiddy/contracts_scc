@@ -8,6 +8,10 @@ To begin:
     $ python3 -m venv .venv
     $ . .venv/bin/activate
     $ pip install Flask
+    $ pip install python-dotenv # not dotenv, not dotenv-python
+    $ pip install sqlalchemy
+    $ pip install pymysql
+    $ pip install cryptography
 
 (because I used python3 when I created the venv, pip does the right thing.)
 
