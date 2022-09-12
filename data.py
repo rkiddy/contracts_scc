@@ -431,7 +431,8 @@ def build_contract_list():
     if param in cost_buckets:
 
         sql = """
-        select c1.contract_id, c1.ariba_id, c1.sap_id,
+        select c1.pk,
+        c1.contract_id, c1.ariba_id, c1.sap_id,
         c1.vendor_pk, v1.name,
         y1.contract_value, c1.contract_value,
         effective_date, expir_date, commodity_desc
@@ -451,7 +452,8 @@ def build_contract_list():
     if param == 'costs/All':
 
         sql = """
-        select c1.contract_id, c1.ariba_id, c1.sap_id,
+        select c1.pk,
+        c1.contract_id, c1.ariba_id, c1.sap_id,
         c1.vendor_pk, v1.name,
         y1.contract_value, c1.contract_value,
         effective_date, expir_date, commodity_desc
@@ -470,21 +472,42 @@ def build_contract_list():
         # print(f"sql: {sql}")
 
         rows = conn.execute(sql).fetchall()
-        cols = {'cID': 0,
-                'aID': 1,
-                'sID': 2,
-                'vendor_pk': 3,
-                'vendor_name': 4,
-                'sum_year': 5,
-                'sum_all': 6,
-                'eff_date': 7,
-                'exp_date': 8,
-                'description': 9}
+        cols = {'pk':0,
+                'cID': 1,
+                'aID': 2,
+                'sID': 3,
+                'vendor_pk': 4,
+                'vendor_name': 5,
+                'sum_year': 6,
+                'sum_all': 7,
+                'eff_date': 8,
+                'exp_date': 9,
+                'description': 10}
 
         contracts = fill_in_table(rows, cols)
         for contract in contracts:
             contract['sum_year'] = money(contract['sum_year'])
             contract['sum_all'] = money(contract['sum_all'])
+            contract['agencies'] = dict()
+
+        sql = """
+        select c1.pk, b1.pk, b1.unit_name
+        from contracts c1, budget_unit_joins j1, budget_units b1
+        where c1.pk = j1.contract_pk and j1.unit_pk = b1.pk and
+        c1.month_pk = __MONTH_PK__
+        """
+
+        sql = sql.replace('__MONTH_PK__', str(month_pk))
+        rows = conn.execute(sql).fetchall()
+        agencies = fill_in_table(rows, {'contract_pk': 0, 'agency_pk': 1, 'agency_name': 2})
+
+        for contract in contracts:
+            for agency in agencies:
+                if contract['pk'] == agency['contract_pk']:
+                    pk = contract['pk']
+                    contract['agencies'][pk] = {'pk': pk, 'name': agency['agency_name']}
+
+            contract['agencies'] = list(contract['agencies'].values())
 
         context['contracts'] = contracts
 
