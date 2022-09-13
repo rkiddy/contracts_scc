@@ -25,7 +25,7 @@
             <td>
                 <ul>
                 {% for vendor in desc.vendors %}
-                    <li> {{ vendor.name }}</li>
+                    <li><a href="/app/contracts/scc/contracts/V{{ vendor.pk }}">{{ vendor.name }}</a></li>
                 {% endfor %}
                 </ul>
             </td>
@@ -35,7 +35,7 @@
             <td>{{ desc.exp_date }}</td>
             <td>
                 {% for agency in desc.agencies %}
-                    <li>{{ agency.name }}</li>
+                    <li><a href="/app/contracts/scc/contracts/A{{ agency.pk }}">{{ agency.name }}</a></li>
                 {% endfor %}
             </td>
         </tr>

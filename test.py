@@ -19,8 +19,8 @@ print("scc_descs:")
 pprint.pprint(data.build('scc_descs'), compact=True)
 print("")
 
-print("scc_costs:")
-pprint.pprint(data.build('scc_costs'), compact=True)
+print("scc_contracts:")
+pprint.pprint(data.build('scc_contracts'), compact=True)
 print("")
 
 print("scc_contract:")

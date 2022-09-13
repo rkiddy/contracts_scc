@@ -10,7 +10,7 @@
     <tbody>
       {% for agency in top_agencies %}
       <tr>
-        <td>{{ agency.name }}</td>
+        <td><a href="/app/contracts/scc/contracts/A{{ agency.pk }}">{{ agency.name }}</a></td>
         <td style = "white-space: nowrap;">{{ agency.amount }}</td>
       </tr>
       {% endfor %}

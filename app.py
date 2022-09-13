@@ -48,19 +48,11 @@ def contracts_agencies():
     return agencies.render(**context)
 
 
-@app.route('/contracts/scc/costs')
-@app.route('/contracts/scc/costs/')
-def contracts_costs():
-    costs = env.get_template('contracts/contracts_found.html')
-    context = data.build('scc_costs')
-    return costs.render(**context)
-
-
-@app.route('/contracts/scc/costs/<param>')
+@app.route('/contracts/scc/contracts/<param>')
 def contracts_costs_by_bucket(param):
     # allow any type of parameter for now.
     costs = env.get_template('contracts/contracts_found.html')
-    context = data.build('scc_costs')
+    context = data.build('scc_contracts')
     return costs.render(**context)
 
 
