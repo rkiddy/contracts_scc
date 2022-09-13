@@ -42,8 +42,14 @@
         </tr>
         {% for contract in contracts %}
             <tr>
-                <td style = "white-space: nowrap;">{% include "contracts/contract_id.html" %}</td>
-                <td>{{ contract.vendor_name }}</td>
+                <td style = "white-space: nowrap;"><a href="/app/contracts/scc/contract/{{ contract.pk }}">{% include "contracts/contract_id.html" %}</a></td>
+                <td>
+                    {% if param_is_vendor %}
+                    {{ contract.vendor_name }}
+                    {% else %}
+                    <a href="/app/contracts/scc/contracts/V{{ contract.vendor_pk }}">{{ contract.vendor_name }}</a>
+                    {% endif %}
+                </td>
                 <td style = "white-space: nowrap;">{{ contract.sum_year }}</td>
                 <td style = "white-space: nowrap;">{{ contract.sum_all }}</td>
                 <td>{{ contract.eff_date }}</td>
@@ -51,11 +57,19 @@
                 <td>
                     <ul>
                     {% for agency in contract.agencies %}
-                        <li>{{ agency.name }}</li>
+                        <li>
+                            <a href="/app/contracts/scc/contracts/A{{ agency.pk }}">{{ agency.name }}</a>
+                        </li>
                     {% endfor %}
                     </ul>
                 </td>
-                <td>{{ contract.description }}</td>
+                <td>
+                    {% if param_is_description %}
+                    {{ contract.description }}
+                    {% else %}
+                    <a href="/app/contracts/scc/contracts/D{{ contract.description }}">{{ contract.description }}</a>
+                    {% endif %}
+                </td>
             </tr>
         {% endfor %}
         </table>
