@@ -2,6 +2,7 @@ import re
 
 import jinja2
 from flask import Flask
+from flask import request
 
 import data
 
@@ -16,7 +17,7 @@ def hello_world():
 
 @app.route('/contracts/scc')
 @app.route('/contracts/scc/')
-def contracts_scc():
+def contracts_main():
     main = env.get_template('scc_main/scc.html')
     context = data.build('scc_main')
     return main.render(**context)
@@ -69,3 +70,10 @@ def contracts_contract(param):
     contract = env.get_template('contract/contract.html')
     context = data.build('scc_contract')
     return contract.render(**context)
+
+
+@app.route('/contracts/scc/search', methods=['POST'])
+def contracts_search():
+    costs = env.get_template('contracts/contracts_found.html')
+    context = data.build('scc_contracts')
+    return costs.render(**context)

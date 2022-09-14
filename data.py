@@ -1,6 +1,6 @@
 
 import re
-from flask import request
+from flask import request, url_for
 from sqlalchemy import create_engine, inspect
 
 engine = create_engine('mysql+pymysql://ray:alexna11@localhost/ca_scc_contracts')
@@ -418,6 +418,38 @@ def build_scc_descs():
     return context
 
 
+def collapse_found_contracts(contracts):
+
+    ids = dict()
+
+    for contract in contracts:
+        key = f"{contract['cID']}_{contract['aID']}_{contract['sID']}"
+        if key not in ids:
+            ids[key] = dict()
+            ids[key]['contracts'] = list()
+            ids[key]['contracts'].append(contract)
+            ids[key]['least'] = contract['month']
+            ids[key]['most'] = contract['month']
+        else:
+            ids[key]['contracts'].append(contract)
+            if contract['month'] < ids[key]['least']:
+                ids[key]['least'] = contract['month']
+            if contract['month'] > ids[key]['most']:
+                ids[key]['most'] = contract['month']
+
+    next_contracts = list()
+    for key in ids:
+        next_contracts.append(ids[key]['contracts'][0])
+        if ids[key]['least'] != ids[key]['most']:
+            next_contracts[-1]['least'] = ids[key]['least']
+            next_contracts[-1]['most'] = ids[key]['most']
+        else:
+            next_contracts[-1]['only'] = ids[key]['least']
+        next_contracts[-1].pop('month')
+
+    return next_contracts
+
+
 def build_contracts():
 
     # we must be able to build the following, based on a parameter:
@@ -433,10 +465,14 @@ def build_contracts():
     #
     # list of contracts for a given description.
     #
-    try:
-        param = request.path.split('/')[-1]
-    except:
-        param = 'A4'
+    param = request.path.split('/')[-1]
+    form_contract_id = request.form['contractID']
+    form_vendor_name = request.form['vendorName']
+    form_desc_str = request.form['descStr']
+    # param = ''
+    # form_contract_id = ''
+    # form_vendor_name = ''
+    # form_desc_str = 'whatever'
 
     context = dict()
 
@@ -451,6 +487,8 @@ def build_contracts():
     context['param_is_bucket'] = param.startswith('B')
     context['param_is_vendor'] = param.startswith('V')
     context['param_is_description'] = param.startswith('D')
+
+    context['param_is_search'] = (form_contract_id != '' or form_vendor_name != '' or form_desc_str != '')
 
     # must check, interfered with by param 'All'.
     if re.match("^A[0-9]+$", param):
@@ -555,7 +593,41 @@ def build_contracts():
         order by c1.contract_value desc
         """
 
-        sql = sql.replace('__DESC__', param[1:])
+    if context['param_is_search']:
+
+        sql = """
+        select c1.pk,
+        c1.contract_id, c1.ariba_id, c1.sap_id,
+        c1.vendor_pk, v1.name,
+        c1.contract_value, m1.month,
+        c1.effective_date, c1.expir_date, c1.commodity_desc
+        from contracts c1, vendors v1, months m1
+        where c1.month_pk = m1.pk and
+        __CONTRACT_IDS_QUAL__ __VENDOR_NAME_QUAL__ __DESCRIPTION_QUAL__
+        c1.vendor_pk = v1.pk
+        order by c1.contract_value desc
+        """
+
+        if form_contract_id == '':
+            sql = sql.replace('__CONTRACT_IDS_QUAL__', '')
+        else:
+            qual1 = f"c1.contract_id = {form_contract_id}"
+            qual2 = f"c1.ariba_id = {form_contract_id}"
+            qual3 = f"c1.sap_id = {form_contract_id}"
+            sql = sql.replace('__CONTRACT_IDS_QUAL__',
+                              f"({qual1} or {qual2} or {qual3}) and")
+
+        if form_vendor_name == '':
+            sql = sql.replace('__VENDOR_NAME_QUAL__', '')
+        else:
+            sql = sql.replace('__VENDOR_NAME_QUAL__',
+                              f"v1.name like '%%{form_vendor_name.upper()}%%' and")
+
+        if form_desc_str == '':
+            sql = sql.replace('__DESCRIPTION_QUAL__', '')
+        else:
+            sql = sql.replace('__DESCRIPTION_QUAL__',
+                              f"lower(c1.commodity_desc) like lower('%%{form_desc_str.upper()}%%') and")
 
     if sql is None:
         print("NOT SQL")
@@ -563,35 +635,56 @@ def build_contracts():
 
     sql = sql.replace('__MONTH_PK__', str(month_pk))
     sql = sql.replace('__LATEST_YEAR__', month.split('-')[0])
+    print(f"sql: {sql}")
 
     rows = conn.execute(sql).fetchall()
-    cols = {'pk': 0,
-            'cID': 1,
-            'aID': 2,
-            'sID': 3,
-            'vendor_pk': 4,
-            'vendor_name': 5,
-            'sum_year': 6,
-            'sum_all': 7,
-            'eff_date': 8,
-            'exp_date': 9,
-            'description': 10}
+    if not context['param_is_search']:
+        cols = {'pk': 0,
+                'cID': 1,
+                'aID': 2,
+                'sID': 3,
+                'vendor_pk': 4,
+                'vendor_name': 5,
+                'sum_year': 6,
+                'sum_all': 7,
+                'eff_date': 8,
+                'exp_date': 9,
+                'description': 10}
+    else:
+        cols = {'pk': 0,
+                'cID': 1,
+                'aID': 2,
+                'sID': 3,
+                'vendor_pk': 4,
+                'vendor_name': 5,
+                'sum_all': 6,
+                'month': 7,
+                'eff_date': 8,
+                'exp_date': 9,
+                'description': 10}
 
     contracts = fill_in_table(rows, cols)
+
+    # I searched without specifying month_pk.
+    # Now I have to sort out start, end of unique contracts.
+    #
+    if context['param_is_search']:
+        contracts = collapse_found_contracts(contracts)
+
     for contract in contracts:
-        contract['sum_year'] = money(contract['sum_year'])
-        contract['sum_all'] = money(contract['sum_all'])
+        if 'sum_year' in contract:
+            contract['sum_year'] = money(contract['sum_year'])
+        if 'sum_all' in contract:
+            contract['sum_all'] = money(contract['sum_all'])
 
         sql = """
         select b1.pk, b1.unit_name
         from contracts c1, budget_unit_joins j1, budget_units b1
         where c1.pk = __CONTRACT_PK__ and
-        c1.pk = j1.contract_pk and j1.unit_pk = b1.pk and
-        c1.month_pk = __MONTH_PK__
+        c1.pk = j1.contract_pk and j1.unit_pk = b1.pk
         """
 
         sql = sql.replace('__CONTRACT_PK__', str(contract['pk']))
-        sql = sql.replace('__MONTH_PK__', str(month_pk))
 
         rows = conn.execute(sql).fetchall()
         agencies = fill_in_table(rows, {'pk': 0, 'name': 1})

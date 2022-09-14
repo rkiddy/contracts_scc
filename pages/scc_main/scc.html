@@ -8,6 +8,15 @@
 <div style="padding: 25px 25px 25px 25px;">
     {% include "curr_month.html" %}
     {% include "scc_main/intro.html" %}
+    <form name="f_67" method="post" action="/app/contracts/scc/search">
+    <table class="table">
+        <caption>Find Contracts</caption>
+        <tr><td>By (Contract, Ariba, or SAP) ID:</td><td><input type="text" name="contractID" size="50" /></td></tr>
+        <tr><td>By Vendor Name (or substring):</td><td><input type="text" name="vendorName" size="50" /></td></tr>
+        <tr><td>By Description:</td><td><input type="text" name="descStr" size="50" /></td></tr>
+        <tr><td></td><td><input type="submit" value="Find"/></td></tr>
+    </table>
+    </form>
     <p>
         <a href="/app/contracts/scc/vendors">Contracts Grouped by Vendor</a>
     </p>
@@ -21,17 +30,8 @@
         <a href="/app/contracts/scc/descs">Contracts Grouped by Description</a>
     </p>
     {% include "scc_main/top_descriptions.html" %}
-    <p>
-        <!-- replace this with a 'find contracts by id' page -->
-    <form name="f_67" method="post" action="/cgi-bin/WebObjects/app.woa/1/wo/skqda8Ymhn92e8esyG8FU0/0.67">Find Contracts
-        By ID:
-        <input type="text" name="67.1"/>
-        <input type="submit" value="Find" name="67.3"/>
-    </form>
-    <hr/>
     {% include "scc_main/sources.html" %}
     {% include "footer.html" %}
-    </p>
 </div>
 </body>
 </html>

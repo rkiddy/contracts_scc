@@ -42,7 +42,15 @@
         </tr>
         {% for contract in contracts %}
             <tr>
-                <td style = "white-space: nowrap;"><a href="/app/contracts/scc/contract/{{ contract.pk }}">{% include "contracts/contract_id.html" %}</a></td>
+                <td style = "white-space: nowrap;">
+                    <a href="/app/contracts/scc/contract/{{ contract.pk }}">{% include "contracts/contract_id.html" %}</a>
+                    {% if contract.least %}
+                    <br/>from: {{ contract.least }}<br/>to: {{ contract.most }}
+                    {% endif %}
+                    {% if contract.only %}
+                    <br/>for: {{ contract.only }}
+                    {% endif %}
+                </td>
                 <td>
                     {% if param_is_vendor %}
                     {{ contract.vendor_name }}
