@@ -1,38 +1,42 @@
-import re
 
+import re
+import sys
+
+from flask import Flask, request
 from jinja2 import Environment, PackageLoader
 
-from flask import Flask
-from flask import request
+sys.path.append("/var/www/opencalaccess_org/contracts_scc/")
 
 import data
 
-app = Flask(__name__)
-env = Environment(loader=PackageLoader('app','pages'))
+contracts_scc = Flask(__name__)
+application = contracts_scc
 
+env = Environment(loader=PackageLoader('contracts_scc', 'pages'))
+# env = Environment(bytecode_cache=MyCache(), loader=PackageLoader('app', 'pages'))
 
-@app.route('/')
+@contracts_scc.route('/')
 def hello_world():
     return '<h2><a href="contracts/scc">Launch</a></h2>'
 
 
-@app.route('/contracts/scc')
-@app.route('/contracts/scc/')
+@contracts_scc.route('/contracts/scc')
+@contracts_scc.route('/contracts/scc/')
 def contracts_main():
     main = env.get_template('scc_main/scc.html')
     context = data.build('scc_main')
     return main.render(**context)
 
 
-@app.route('/contracts/scc/vendors')
-@app.route('/contracts/scc/vendors/')
+@contracts_scc.route('/contracts/scc/vendors')
+@contracts_scc.route('/contracts/scc/vendors/')
 def contracts_vendors():
     vendors = env.get_template('scc_vendors/vendors.html')
     context = data.build('scc_vendors')
     return vendors.render(**context)
 
 
-@app.route("/contracts/scc/vendors/<param>")
+@contracts_scc.route("/contracts/scc/vendors/<param>")
 def contracts_vendors_by_letter(param):
     if not re.match("^[A-Z]$", param) and param not in ['All', 'NA']:
         raise Exception("Invalid choice for vendor prefix")
@@ -42,15 +46,15 @@ def contracts_vendors_by_letter(param):
         return vendors.render(**context)
 
 
-@app.route('/contracts/scc/agencies')
-@app.route('/contracts/scc/agencies/')
+@contracts_scc.route('/contracts/scc/agencies')
+@contracts_scc.route('/contracts/scc/agencies/')
 def contracts_agencies():
     agencies = env.get_template('scc_agencies/agencies.html')
     context = data.build('scc_agencies')
     return agencies.render(**context)
 
 
-@app.route('/contracts/scc/contracts/<param>')
+@contracts_scc.route('/contracts/scc/contracts/<param>')
 def contracts(param):
     # allow any type of parameter for now.
     costs = env.get_template('contracts/contracts_found.html')
@@ -58,23 +62,27 @@ def contracts(param):
     return costs.render(**context)
 
 
-@app.route('/contracts/scc/descs')
-@app.route('/contracts/scc/descs/')
+@contracts_scc.route('/contracts/scc/descs')
+@contracts_scc.route('/contracts/scc/descs/')
 def contracts_descs():
     descs = env.get_template('scc_descs/descs.html')
     context = data.build('scc_descs')
     return descs.render(**context)
 
 
-@app.route('/contracts/scc/contract/<param>')
+@contracts_scc.route('/contracts/scc/contract/<param>')
 def contracts_contract(param):
     contract = env.get_template('contract/contract.html')
     context = data.build('scc_contract')
     return contract.render(**context)
 
 
-@app.route('/contracts/scc/search', methods=['POST'])
+@contracts_scc.route('/contracts/scc/search', methods=['POST'])
 def contracts_search():
     costs = env.get_template('contracts/contracts_found.html')
     context = data.build('scc_search')
     return costs.render(**context)
+
+
+if __name__ == '__main__':
+    contracts_scc.run()

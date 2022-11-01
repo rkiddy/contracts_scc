@@ -3,7 +3,7 @@ import re
 from flask import request, url_for
 from sqlalchemy import create_engine, inspect
 
-engine = create_engine('mysql+pymysql://ray:alexna11@localhost/ca_scc_contracts')
+engine = create_engine('mysql+pymysql://ray:ZEKRET_WORD@localhost/ca_scc_contracts')
 conn = engine.connect()
 inspector = inspect(engine)
 
@@ -74,10 +74,13 @@ def build(page):
         return build_scc_descs()
 
     if page == 'scc_contracts':
-        return build_contracts()
+        return build_scc_contracts()
 
     if page == 'scc_contract':
-        return build_contract()
+        return build_scc_contract()
+
+    if page == 'scc_search':
+        return build_scc_search()
 
 
 def build_scc_main():
@@ -179,7 +182,7 @@ def build_scc_main():
     sql = f"select source_url from sources where month_pk = {month_pk} and source_url like '%%document/Contract%%'"
     context['sources']['contract_rpt'] = conn.execute(sql).fetchone()['source_url']
 
-    sql = f"select source_url from sources where month_pk = {month_pk} and source_url like '%%document/Contract%%'"
+    sql = f"select source_url from sources where month_pk = {month_pk} and source_url like '%%document/SA%%'"
     context['sources']['sabc_rpt'] = conn.execute(sql).fetchone()['source_url']
 
     return context
@@ -450,29 +453,44 @@ def collapse_found_contracts(contracts):
     return next_contracts
 
 
-def build_contracts():
+contracts_list_columns = {
+    'pk': 0,
+    'cID': 1,
+    'aID': 2,
+    'sID': 3,
+    'vendor_pk': 4,
+    'vendor_name': 5,
+    'sum_year': 6,
+    'sum_all': 7,
+    'eff_date': 8,
+    'exp_date': 9,
+    'description': 10}
 
-    # we must be able to build the following, based on a parameter:
-    #
-    # list of contract with value between to values. prefix = "B"
-    #     should also include nav links for different buckets.
-    #
-    # list of contracts for a given vendor. prefix = "V"
-    #     should also include the vendor name and vendor info.
-    #
-    # list of contracts for a given agency. prefix = "A"
-    #     should also include the agency name and extra info for agency.
-    #
-    # list of contracts for a given description.
-    #
-    param = request.path.split('/')[-1]
-    form_contract_id = request.form['contractID']
-    form_vendor_name = request.form['vendorName']
-    form_desc_str = request.form['descStr']
-    # param = ''
-    # form_contract_id = ''
-    # form_vendor_name = ''
-    # form_desc_str = 'whatever'
+contracts_search_columns = {
+    'pk': 0,
+    'cID': 1,
+    'aID': 2,
+    'sID': 3,
+    'vendor_pk': 4,
+    'vendor_name': 5,
+    'sum_all': 6,
+    'month': 7,
+    'eff_date': 8,
+    'exp_date': 9,
+    'description': 10}
+
+
+def format_money(contracts):
+    for contract in contracts:
+        if 'sum_year' in contract:
+            contract['sum_year'] = money(contract['sum_year'])
+        if 'sum_all' in contract:
+            contract['sum_all'] = money(contract['sum_all'])
+    return contracts
+
+
+def build_contracts_by_bucket(param):
+    print("build_contracts_by_bucket")
 
     context = dict()
 
@@ -480,233 +498,243 @@ def build_contracts():
     context['current_month'] = month
     context['current_year'] = month.split('-')[0]
 
-    sql = None
+    context['param_is_bucket'] = True
 
-    context['param'] = param
+    bucket = int(param[1:])
 
-    context['param_is_bucket'] = param.startswith('B')
-    context['param_is_vendor'] = param.startswith('V')
-    context['param_is_description'] = param.startswith('D')
+    sql = """
+    select c1.pk,
+    c1.contract_id, c1.ariba_id, c1.sap_id,
+    c1.vendor_pk, v1.name,
+    y1.contract_value, c1.contract_value,
+    effective_date, expir_date, commodity_desc
+    from contracts c1, contract_years y1, vendors v1
+    where c1.pk = y1.contract_pk and
+    y1.year = __LATEST_YEAR__ and
+    c1.vendor_pk = v1.pk and
+    c1.month_pk = __MONTH_PK__ and
+    y1.contract_value >= __MIN_VALUE__ and
+    y1.contract_value < __MAX_VALUE__
+    order by c1.contract_value
+    """
 
-    context['param_is_search'] = (form_contract_id != '' or form_vendor_name != '' or form_desc_str != '')
-
-    # must check, interfered with by param 'All'.
-    if re.match("^A[0-9]+$", param):
-        context['param_is_agency'] = True
-    else:
-        context['param_is_agency'] = False
-
-    if param == 'All':
-        sql = """
-        select c1.pk,
-        c1.contract_id, c1.ariba_id, c1.sap_id,
-        c1.vendor_pk, v1.name,
-        y1.contract_value, c1.contract_value,
-        effective_date, expir_date, commodity_desc
-        from contracts c1, contract_years y1, vendors v1
-        where c1.pk = y1.contract_pk and
-        y1.year = __LATEST_YEAR__ and
-        c1.vendor_pk = v1.pk and
-        c1.month_pk = __MONTH_PK__
-        order by c1.contract_value desc
-        """
-
-    if context['param_is_bucket']:
-
-        sql = """
-        select c1.pk,
-        c1.contract_id, c1.ariba_id, c1.sap_id,
-        c1.vendor_pk, v1.name,
-        y1.contract_value, c1.contract_value,
-        effective_date, expir_date, commodity_desc
-        from contracts c1, contract_years y1, vendors v1
-        where c1.pk = y1.contract_pk and
-        y1.year = __LATEST_YEAR__ and
-        c1.vendor_pk = v1.pk and
-        c1.month_pk = __MONTH_PK__ and
-        y1.contract_value >= __MIN_VALUE__ and
-        y1.contract_value < __MAX_VALUE__
-        order by c1.contract_value
-        """
-
-        sql = sql.replace('__MIN_VALUE__', str(int(cost_buckets[param][0]) * 100))
-        sql = sql.replace('__MAX_VALUE__', str(int(cost_buckets[param][1]) * 100))
-
-    if context['param_is_vendor']:
-
-        pk = int(param[1:])
-
-        sql = """
-        select c1.pk,
-        c1.contract_id, c1.ariba_id, c1.sap_id,
-        c1.vendor_pk, v1.name,
-        y1.contract_value, c1.contract_value,
-        effective_date, expir_date, commodity_desc
-        from contracts c1, contract_years y1, vendors v1
-        where v1.pk = __VENDOR_PK__ and
-        c1.vendor_pk = v1.pk and
-        c1.pk = y1.contract_pk and
-        y1.year = __LATEST_YEAR__ and
-        c1.month_pk = __MONTH_PK__
-        order by c1.contract_value desc
-        """
-
-        sql = sql.replace('__VENDOR_PK__', str(pk))
-
-    if context['param_is_agency']:
-
-        pk = int(param[1:])
-
-        sql = """
-        select c1.pk,
-        c1.contract_id, c1.ariba_id, c1.sap_id,
-        c1.vendor_pk, v1.name,
-        y1.contract_value, c1.contract_value,
-        effective_date, expir_date, commodity_desc
-        from contracts c1, contract_years y1, vendors v1,
-        budget_unit_joins j1, budget_units b1
-        where b1.pk = __AGENCY_PK__ and
-        j1.unit_pk = b1.pk and j1.contract_pk = c1.pk and
-        c1.vendor_pk = v1.pk and
-        c1.pk = y1.contract_pk and
-        y1.year = __LATEST_YEAR__ and
-        c1.month_pk = __MONTH_PK__
-        order by c1.contract_value desc
-        """
-
-        sql = sql.replace('__AGENCY_PK__', str(pk))
-
-    if context['param_is_description']:
-
-        sql = """
-        select c1.pk,
-        c1.contract_id, c1.ariba_id, c1.sap_id,
-        c1.vendor_pk, v1.name,
-        y1.contract_value, c1.contract_value,
-        effective_date, expir_date, commodity_desc
-        from contracts c1, contract_years y1, vendors v1
-        where c1.commodity_desc = '__DESC__' and
-        c1.vendor_pk = v1.pk and
-        c1.pk = y1.contract_pk and
-        y1.year = __LATEST_YEAR__ and
-        c1.month_pk = __MONTH_PK__
-        order by c1.contract_value desc
-        """
-
-    if context['param_is_search']:
-
-        sql = """
-        select c1.pk,
-        c1.contract_id, c1.ariba_id, c1.sap_id,
-        c1.vendor_pk, v1.name,
-        c1.contract_value, m1.month,
-        c1.effective_date, c1.expir_date, c1.commodity_desc
-        from contracts c1, vendors v1, months m1
-        where c1.month_pk = m1.pk and
-        __CONTRACT_IDS_QUAL__ __VENDOR_NAME_QUAL__ __DESCRIPTION_QUAL__
-        c1.vendor_pk = v1.pk
-        order by c1.contract_value desc
-        """
-
-        if form_contract_id == '':
-            sql = sql.replace('__CONTRACT_IDS_QUAL__', '')
-        else:
-            qual1 = f"c1.contract_id = {form_contract_id}"
-            qual2 = f"c1.ariba_id = {form_contract_id}"
-            qual3 = f"c1.sap_id = {form_contract_id}"
-            sql = sql.replace('__CONTRACT_IDS_QUAL__',
-                              f"({qual1} or {qual2} or {qual3}) and")
-
-        if form_vendor_name == '':
-            sql = sql.replace('__VENDOR_NAME_QUAL__', '')
-        else:
-            sql = sql.replace('__VENDOR_NAME_QUAL__',
-                              f"v1.name like '%%{form_vendor_name.upper()}%%' and")
-
-        if form_desc_str == '':
-            sql = sql.replace('__DESCRIPTION_QUAL__', '')
-        else:
-            sql = sql.replace('__DESCRIPTION_QUAL__',
-                              f"lower(c1.commodity_desc) like lower('%%{form_desc_str.upper()}%%') and")
-
-    if sql is None:
-        print("NOT SQL")
-        return {}
+    sql = sql.replace('__MIN_VALUE__', str(int(cost_buckets[param][0]) * 100))
+    sql = sql.replace('__MAX_VALUE__', str(int(cost_buckets[param][1]) * 100))
 
     sql = sql.replace('__MONTH_PK__', str(month_pk))
     sql = sql.replace('__LATEST_YEAR__', month.split('-')[0])
-    print(f"sql: {sql}")
 
     rows = conn.execute(sql).fetchall()
-    if not context['param_is_search']:
-        cols = {'pk': 0,
-                'cID': 1,
-                'aID': 2,
-                'sID': 3,
-                'vendor_pk': 4,
-                'vendor_name': 5,
-                'sum_year': 6,
-                'sum_all': 7,
-                'eff_date': 8,
-                'exp_date': 9,
-                'description': 10}
-    else:
-        cols = {'pk': 0,
-                'cID': 1,
-                'aID': 2,
-                'sID': 3,
-                'vendor_pk': 4,
-                'vendor_name': 5,
-                'sum_all': 6,
-                'month': 7,
-                'eff_date': 8,
-                'exp_date': 9,
-                'description': 10}
 
-    contracts = fill_in_table(rows, cols)
+    contracts = fill_in_table(rows, contracts_list_columns)
+
+    context['contracts'] = format_money(contracts)
+    return context
+
+
+def build_contracts_for_vendor(param):
+    print("build_contracts_for_vendor")
+
+    context = dict()
+
+    context['param_is_vendor'] = True
+
+    [month_pk, month] = latest_month()
+    context['current_month'] = month
+    context['current_year'] = month.split('-')[0]
+
+    pk = int(param[1:])
+
+    sql = """
+    select c1.pk,
+    c1.contract_id, c1.ariba_id, c1.sap_id,
+    c1.vendor_pk, v1.name,
+    y1.contract_value, c1.contract_value,
+    effective_date, expir_date, commodity_desc
+    from contracts c1, contract_years y1, vendors v1
+    where v1.pk = __VENDOR_PK__ and
+    c1.vendor_pk = v1.pk and
+    c1.pk = y1.contract_pk and
+    y1.year = __LATEST_YEAR__ and
+    c1.month_pk = __MONTH_PK__
+    order by c1.contract_value desc
+    """
+
+    sql = sql.replace('__VENDOR_PK__', str(pk))
+
+    sql = sql.replace('__MONTH_PK__', str(month_pk))
+    sql = sql.replace('__LATEST_YEAR__', month.split('-')[0])
+
+    rows = conn.execute(sql).fetchall()
+
+    contracts = fill_in_table(rows, contracts_list_columns)
+
+    context['vendor_name'] = rows[0][5]
+
+    context['contracts'] = format_money(contracts)
+    return context
+
+
+def build_contracts_for_agency(param):
+    print("build_contracts_for_agency")
+
+    context = dict()
+
+    context['param_is_agency'] = True
+
+    [month_pk, month] = latest_month()
+    context['current_month'] = month
+    context['current_year'] = month.split('-')[0]
+
+    pk = int(param[1:])
+
+    sql = """
+    select c1.pk,
+    c1.contract_id, c1.ariba_id, c1.sap_id,
+    c1.vendor_pk, v1.name, y1.contract_value,
+    c1.contract_value, c1.effective_date, c1.expir_date,
+    c1.commodity_desc, b1.unit_name
+    from contracts c1, contract_years y1, vendors v1,
+    budget_unit_joins j1, budget_units b1
+    where b1.pk = __AGENCY_PK__ and
+    j1.unit_pk = b1.pk and j1.contract_pk = c1.pk and
+    c1.vendor_pk = v1.pk and
+    c1.pk = y1.contract_pk and
+    y1.year = __LATEST_YEAR__ and
+    c1.month_pk = __MONTH_PK__
+    order by c1.contract_value desc
+    """
+
+    sql = sql.replace('__AGENCY_PK__', str(pk))
+
+    sql = sql.replace('__MONTH_PK__', str(month_pk))
+    sql = sql.replace('__LATEST_YEAR__', month.split('-')[0])
+
+    rows = conn.execute(sql).fetchall()
+
+    contracts = fill_in_table(rows, contracts_list_columns)
+
+    context['agency_name'] = rows[0][11]
+ 
+    context['contracts'] = format_money(contracts)
+    return context
+
+
+def build_contracts_for_desc(param):
+    print("build_contracts_for_desc")
+
+    context = dict()
+
+    context['param_is_description'] = True
+
+    [month_pk, month] = latest_month()
+    context['current_month'] = month
+    context['current_year'] = month.split('-')[0]
+
+    desc = param[1:]
+    context['desc'] = desc
+
+    sql = """
+    select c1.pk,
+    c1.contract_id, c1.ariba_id, c1.sap_id,
+    c1.vendor_pk, v1.name,
+    y1.contract_value, c1.contract_value,
+    effective_date, expir_date, commodity_desc
+    from contracts c1, contract_years y1, vendors v1
+    where c1.commodity_desc = '__DESC__' and
+    c1.vendor_pk = v1.pk and
+    c1.pk = y1.contract_pk and
+    y1.year = __LATEST_YEAR__ and
+    c1.month_pk = __MONTH_PK__
+    order by c1.contract_value desc
+    """
+
+    sql = sql.replace('__DESC__', desc)
+
+    sql = sql.replace('__MONTH_PK__', str(month_pk))
+    sql = sql.replace('__LATEST_YEAR__', month.split('-')[0])
+
+    rows = conn.execute(sql).fetchall()
+
+    contracts = fill_in_table(rows, contracts_list_columns)
+
+    context['contracts'] = format_money(contracts)
+    return context
+
+
+def build_scc_search():
+
+    context = dict()
+
+    [month_pk, month] = latest_month()
+    context['current_month'] = month
+    context['current_year'] = month.split('-')[0]
+
+    search_type = request.form['search-type']
+    search_term = request.form['search-term']
+
+    sql = """
+     select c1.pk,
+     c1.contract_id, c1.ariba_id, c1.sap_id,
+     c1.vendor_pk, v1.name,
+     c1.contract_value, m1.month,
+     c1.effective_date, c1.expir_date, c1.commodity_desc
+     from contracts c1, vendors v1, months m1
+     where c1.month_pk = m1.pk and
+     __QUAL__
+     c1.vendor_pk = v1.pk
+     order by c1.contract_value desc
+     """
+
+    if search_type == 'contractID' and search_term != '':
+        sql = sql.replace(
+            '__QUAL__',
+            f"(c1.contract_id = '{search_term}' or "
+            f"c1.ariba_id = '{search_term}' or "
+            f"c1.sap_id = '{search_term}') and")
+
+    if search_type == 'vendorName' and search_term != '':
+        sql = sql.replace(
+            '__QUAL__',
+            f"v1.name like '%%{search_term}%%' and")
+
+    if search_type == 'descript' and search_term != '':
+        sql = sql.replace(
+            '__QUAL__',
+            f"lower(c1.commodity_desc) like lower('%%{search_term.upper()}%%') and")
+
+    # print(f"sql: {sql}")
+
+    rows = conn.execute(sql).fetchall()
+
+    contracts = fill_in_table(rows, contracts_search_columns)
 
     # I searched without specifying month_pk.
     # Now I have to sort out start, end of unique contracts.
     #
-    if context['param_is_search']:
-        contracts = collapse_found_contracts(contracts)
+    contracts = collapse_found_contracts(contracts)
 
-    for contract in contracts:
-        if 'sum_year' in contract:
-            contract['sum_year'] = money(contract['sum_year'])
-        if 'sum_all' in contract:
-            contract['sum_all'] = money(contract['sum_all'])
-
-        sql = """
-        select b1.pk, b1.unit_name
-        from contracts c1, budget_unit_joins j1, budget_units b1
-        where c1.pk = __CONTRACT_PK__ and
-        c1.pk = j1.contract_pk and j1.unit_pk = b1.pk
-        """
-
-        sql = sql.replace('__CONTRACT_PK__', str(contract['pk']))
-
-        rows = conn.execute(sql).fetchall()
-        agencies = fill_in_table(rows, {'pk': 0, 'name': 1})
-        contract['agencies'] = agencies
-
-    if context['param_is_vendor']:
-        context['vendor_name'] = contracts[0]['vendor_name']
-
-    if context['param_is_agency']:
-        print(f"pk: {param}")
-        for agency in contracts[0]['agencies']:
-            print(f"agency: {agency}")
-            print(f"are they equal? agency[pk]: {agency['pk']} and pk: {pk}")
-            if agency['pk'] == pk:
-                context['agency_name'] = agency['name']
-
-    context['contracts'] = contracts
-
+    context['contracts'] = format_money(contracts)
     return context
 
 
-def build_contract():
+def build_scc_contracts():
+
+    param = request.path.split('/')[-1]
+
+    if param.startswith('B'):
+        return build_contracts_by_bucket(param)
+    if param.startswith('V'):
+        return build_contracts_for_vendor(param)
+    if param.startswith('A'):
+        return build_contracts_for_agency(param)
+    if param.startswith('D'):
+        return build_contracts_for_desc(param)
+
+    raise Exception(f"Cannot understand parameter: {param}")
+
+
+def build_scc_contract():
 
     try:
         contract_pk = request.path.split('/')[-1]
@@ -725,6 +753,16 @@ def build_contract():
     y1.year = __LATEST_YEAR__ and
     c1.vendor_pk = v1.pk and
     c1.month_pk = __MONTH_PK__
+    """
+
+    contract_allmonths_sql = """
+    select c1.pk,
+    c1.contract_id, c1.ariba_id, c1.sap_id,
+    c1.vendor_pk, v1.name, c1.contract_value,
+    effective_date, expir_date, commodity_desc
+    from contracts c1, vendors v1
+    where c1.pk = __CONTRACT_PK__ and
+    c1.vendor_pk = v1.pk
     """
 
     contract_agencies_sql = """
@@ -761,10 +799,30 @@ def build_contract():
     contracts = fill_in_table(rows, cols)
 
     if not contracts:
+        sql = contract_allmonths_sql
+
+        sql = sql.replace('__CONTRACT_PK__', contract_pk)
+
+        rows = conn.execute(sql).fetchall()
+        cols = {'pk': 0,
+                'cID': 1,
+                'aID': 2,
+                'sID': 3,
+                'vendor_pk': 4,
+                'vendor_name': 5,
+                'sum_all': 6,
+                'eff_date': 7,
+                'exp_date': 8,
+                'description': 9}
+
+        contracts = fill_in_table(rows, cols)
+
+    if not contracts:
         raise Exception(f"no contract data found for pk: {contract_pk}")
 
-    contracts[0]['sum_year'] = money(contracts[0]['sum_year'])
     contracts[0]['sum_all'] = money(contracts[0]['sum_all'])
+    if 'sum_year' in contracts[0]:
+        contracts[0]['sum_year'] = money(contracts[0]['sum_year'])
     contracts[0]['agencies'] = dict()
 
     contract = contracts[0]

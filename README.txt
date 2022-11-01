@@ -25,8 +25,28 @@ and then I can get to the app at:
 
 see https://flask.palletsprojects.com/en/2.1.x/quickstart/
 
+Put this into a .env file at the root of the project:
+
+    FLASK_APP=app
+    FLASK_ENV=development
+    FLASK_DEBUG=1
+    FLASK_RUN_PORT=8080
+
 finally, run as:
 
- % FLASK_APP=app FLASK_ENV=development FLASK_DEBUG=1 FLASK_RUN_PORT=8080 python -m flask run
+ % python -m flask run
 
+To Do:
+
+- Put the CA (SoS) number alongside the vendor name in the lists.
+
+- On Agencies page and especially the Descriptions page, the right-side column
+list is very long. This should be an ajax-ish list which says (# found is ...)
+and then a click expands the list and there should be an 'Expand All' in the
+column header at the right.
+
+- On the Vendors page, there should be a column that shows number of contracts.
+
+- On pages other then the Vendors page, the number of contracts could be
+displayed along with the vendor name.
 

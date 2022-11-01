@@ -21,11 +21,11 @@
         </tr>
         {% for desc in descs %}
         <tr>
-            <td>{{ desc.description }}</td>
+            <td><a href="/data/contracts/scc/contracts/D{{ desc.description }}">{{ desc.description }}</a></td>
             <td>
                 <ul>
                 {% for vendor in desc.vendors %}
-                    <li><a href="/app/contracts/scc/contracts/V{{ vendor.pk }}">{{ vendor.name }}</a></li>
+                    <li><a href="/data/contracts/scc/contracts/V{{ vendor.pk }}">{{ vendor.name }}</a></li>
                 {% endfor %}
                 </ul>
             </td>
@@ -35,7 +35,7 @@
             <td>{{ desc.exp_date }}</td>
             <td>
                 {% for agency in desc.agencies %}
-                    <li><a href="/app/contracts/scc/contracts/A{{ agency.pk }}">{{ agency.name }}</a></li>
+                    <li><a href="/data/contracts/scc/contracts/A{{ agency.pk }}">{{ agency.name }}</a></li>
                 {% endfor %}
             </td>
         </tr>

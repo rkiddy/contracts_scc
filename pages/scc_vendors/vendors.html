@@ -20,7 +20,7 @@
         </tr>
         {% for vendor in vendors %}
         <tr>
-            <td><a href="/app/contracts/scc/contracts/V{{ vendor.pk }}">{{ vendor.name }}</a></td>
+            <td><a href="/data/contracts/scc/contracts/V{{ vendor.pk }}">{{ vendor.name }}</a></td>
             <td style = "white-space: nowrap;">{{ vendor.sum_year }}</td>
             <td style = "white-space: nowrap;">{{ vendor.sum_all }}</td>
             <td>{{ vendor.eff_date }}</td>
@@ -28,7 +28,7 @@
             <td>
                 <ul>
                     {% for agency in vendor.agencies %}
-                    <li><a href="/app/contracts/scc/contracts/A{{ agency.pk }}">{{ agency.name }}</a></li>
+                    <li><a href="/data/contracts/scc/contracts/A{{ agency.pk }}">{{ agency.name }}</a></li>
                     {% endfor %}
                 </ul>
             </td>
