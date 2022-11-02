@@ -3,7 +3,7 @@ import re
 from flask import request, url_for
 from sqlalchemy import create_engine, inspect
 
-engine = create_engine('mysql+pymysql://ray:ZEKRET_WORD@localhost/ca_scc_contracts')
+engine = create_engine('mysql+pymysql://ray:alexna11@localhost/ca_scc_contracts')
 conn = engine.connect()
 inspector = inspect(engine)
 
@@ -81,6 +81,9 @@ def build(page):
 
     if page == 'scc_search':
         return build_scc_search()
+
+    if page == 'scc_documents':
+        return build_scc_documents()
 
 
 def build_scc_main():
@@ -715,6 +718,44 @@ def build_scc_search():
     contracts = collapse_found_contracts(contracts)
 
     context['contracts'] = format_money(contracts)
+
+    return context
+
+
+def build_scc_documents():
+
+    context = dict()
+
+    [month_pk, month] = latest_month()
+    context['current_month'] = month
+    context['current_year'] = month.split('-')[0]
+
+    sql = """
+     select c1.pk,
+     c1.contract_id, c1.ariba_id, c1.sap_id,
+     c1.vendor_pk, v1.name,
+     c1.contract_value, m1.month,
+     c1.effective_date, c1.expir_date, c1.commodity_desc
+     from contracts c1, vendors v1, months m1
+     where c1.month_pk = m1.pk and
+     (select count(0) from supporting_docs where contract_uniq_pk = c1.uniq_pk) > 1 and
+     c1.vendor_pk = v1.pk
+     order by c1.contract_value desc
+     """
+
+    # print(f"sql: {sql}")
+
+    rows = conn.execute(sql).fetchall()
+
+    contracts = fill_in_table(rows, contracts_search_columns)
+
+    # I searched without specifying month_pk.
+    # Now I have to sort out start, end of unique contracts.
+    #
+    contracts = collapse_found_contracts(contracts)
+
+    context['contracts'] = format_money(contracts)
+
     return context
 
 

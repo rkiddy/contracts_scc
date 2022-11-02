@@ -2,7 +2,7 @@
 import re
 import sys
 
-from flask import Flask, request
+from flask import Flask
 from jinja2 import Environment, PackageLoader
 
 sys.path.append("/var/www/opencalaccess_org/contracts_scc/")
@@ -11,9 +11,9 @@ import data
 
 contracts_scc = Flask(__name__)
 application = contracts_scc
-
+# env = Environment(loader=PackageLoader('app','pages'))
 env = Environment(loader=PackageLoader('contracts_scc', 'pages'))
-# env = Environment(bytecode_cache=MyCache(), loader=PackageLoader('app', 'pages'))
+
 
 @contracts_scc.route('/')
 def hello_world():
@@ -81,6 +81,14 @@ def contracts_contract(param):
 def contracts_search():
     costs = env.get_template('contracts/contracts_found.html')
     context = data.build('scc_search')
+    return costs.render(**context)
+
+
+@contracts_scc.route('/contracts/scc/contracts_docs')
+@contracts_scc.route('/contracts/scc/contracts_docs/')
+def contracts_docs():
+    costs = env.get_template('contracts/contracts_found.html')
+    context = data.build('scc_documents')
     return costs.render(**context)
 
 
