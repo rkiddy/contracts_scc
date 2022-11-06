@@ -19,7 +19,7 @@
 <div style="padding: 25px 25px 25px 25px;">
     {% include "curr_month.html" %}
     {% include "scc_main/intro.html" %}
-    <form name="f_67" method="post" action="/data/contracts/scc/search">
+    <form name="f_67" method="post" action="/xontracts/scc/search">
     <table class="table-sm">
         <caption>Find Contracts</caption>
         <tr>
@@ -47,13 +47,13 @@
     <div class="tab-content">
         <div class="tab-pane active" id="vendors">
             <p>
-                <a href="/data/contracts/scc/vendors">Contracts Grouped by Vendor</a>
+                <a href="/contracts/scc/vendors">Contracts Grouped by Vendor</a>
             </p>
             {% include "scc_main/top_vendors.html" %}
         </div>
         <div class="tab-pane" id="agencies">
             <p>
-                <a href="/data/contracts/scc/agencies">Contracts Grouped by Agency</a>
+                <a href="/contracts/scc/agencies">Contracts Grouped by Agency</a>
             </p>
             {% include "scc_main/top_agencies.html" %}
         </div>
@@ -62,7 +62,7 @@
         </div>
         <div class="tab-pane" id="descriptions">
             <p>
-                <a href="/data/contracts/scc/descs">Contracts Grouped by Description</a>
+                <a href="/contracts/scc/descs">Contracts Grouped by Description</a>
             </p>
             {% include "scc_main/top_descriptions.html" %}
         </div>

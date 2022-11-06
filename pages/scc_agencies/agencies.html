@@ -17,10 +17,11 @@
             <th>Earliest<br/>Effective<br/>Date</th>
             <th>Latest<br/>Expiry<br/>Date</th>
             <th>Vendors</th>
+	    <th>Docs</th>
         </tr>
         {% for agency in agencies %}
         <tr>
-            <td><a href="/data/contracts/scc/contracts/A{{ agency.pk }}">{{ agency.name }}</a></td>
+            <td><a href="/contracts/scc/contracts/A{{ agency.pk }}">{{ agency.name }}</a></td>
             <td style = "white-space: nowrap;">{{ agency.sum_year }}</td>
             <td style = "white-space: nowrap;">{{ agency.sum_all }}</td>
             <td>{{ agency.eff_date }}</td>
@@ -28,10 +29,11 @@
             <td>
                 <ul>
                     {% for vendor in agency.vendors %}
-                    <li><a href="/data/contracts/scc/contracts/V{{ vendor.pk }}">{{ vendor.name }}</a></li>
+                    <li><a href="/contracts/scc/contracts/V{{ vendor.pk }}">{{ vendor.name }}</a></li>
                     {% endfor %}
                 </ul>
             </td>
+	    <td>{{ agency.count_docs }}</td>
         </tr>
         {% endfor %}
     </table>

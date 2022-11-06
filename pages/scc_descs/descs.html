@@ -18,14 +18,15 @@
             <th>Earliest<br/>Effective<br/>Date</th>
             <th>Latest<br/>Expiry<br/>Date</th>
             <th>Agencies</th>
+	    <th>Docs</th>
         </tr>
         {% for desc in descs %}
         <tr>
-            <td><a href="/data/contracts/scc/contracts/D{{ desc.description }}">{{ desc.description }}</a></td>
+            <td><a href="/contracts/scc/contracts/D{{ desc.description }}">{{ desc.description }}</a></td>
             <td>
                 <ul>
                 {% for vendor in desc.vendors %}
-                    <li><a href="/data/contracts/scc/contracts/V{{ vendor.pk }}">{{ vendor.name }}</a></li>
+                    <li><a href="/contracts/scc/contracts/V{{ vendor.pk }}">{{ vendor.name }}</a></li>
                 {% endfor %}
                 </ul>
             </td>
@@ -35,9 +36,10 @@
             <td>{{ desc.exp_date }}</td>
             <td>
                 {% for agency in desc.agencies %}
-                    <li><a href="/data/contracts/scc/contracts/A{{ agency.pk }}">{{ agency.name }}</a></li>
+                    <li><a href="/contracts/scc/contracts/A{{ agency.pk }}">{{ agency.name }}</a></li>
                 {% endfor %}
             </td>
+	    <td>{{ desc.count_docs }}</td>
         </tr>
         {% endfor %}
     </table>
