@@ -762,16 +762,37 @@ def build_scc_contracts():
 
     param = request.path.split('/')[-1]
 
-    if param.startswith('B'):
-        return build_contracts_by_bucket(param)
-    if param.startswith('V'):
-        return build_contracts_for_vendor(param)
-    if param.startswith('A'):
-        return build_contracts_for_agency(param)
-    if param.startswith('D'):
-        return build_contracts_for_desc(param)
+    context = None
 
-    raise Exception(f"Cannot understand parameter: {param}")
+    if param.startswith('B'):
+        context = build_contracts_by_bucket(param)
+    if param.startswith('V'):
+        context = build_contracts_for_vendor(param)
+    if param.startswith('A'):
+        context = build_contracts_for_agency(param)
+    if param.startswith('D'):
+        context = build_contracts_for_desc(param)
+
+    if context is None:
+        raise Exception(f"Cannot understand parameter: {param}")
+
+    for contract in context['contracts']:
+        sql = """
+        select u1.pk, u1.unit_name
+        from contracts c1, budget_unit_joins j1, budget_units u1
+        where c1.pk = __CPK__ and c1.pk = j1.contract_pk and j1.unit_pk = u1.pk
+        """
+        sql = sql.replace('__CPK__', str(contract['pk']))
+        contract['agencies'] = list()
+        rows = conn.execute(sql).fetchall()
+        for row in rows:
+            agency = {
+                'pk': row['pk'],
+                'name': row['unit_name']
+            }
+            contract['agencies'].append(agency)
+
+    return context
 
 
 def build_scc_contract():
