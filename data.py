@@ -618,7 +618,7 @@ def build_contracts_for_agency(param):
     contracts = fill_in_table(rows, contracts_list_columns)
 
     context['agency_name'] = rows[0][11]
- 
+
     context['contracts'] = format_money(contracts)
     return context
 
@@ -737,9 +737,8 @@ def build_scc_documents():
      c1.contract_value, m1.month,
      c1.effective_date, c1.expir_date, c1.commodity_desc
      from contracts c1, vendors v1, months m1
-     where c1.month_pk = m1.pk and
-     (select count(0) from supporting_docs where contract_uniq_pk = c1.uniq_pk) > 1 and
-     c1.vendor_pk = v1.pk
+     where c1.vendor_pk = v1.pk and
+     c1.uniq_pk in (select contract_uniq_pk from supporting_docs)
      order by c1.contract_value desc
      """
 
@@ -898,9 +897,11 @@ def build_scc_contract():
 
     contract_supporting_docs_sql = """
     select url from supporting_docs
-    where __CONTRACT_ID_QUAL__ and
-    __ARIBA_ID_QUAL__ and
-    __SAP_ID_QUAL__
+    where contract_uniq_pk in
+    (select uniq_pk from contracts where
+        __CONTRACT_ID_QUAL__ and
+        __ARIBA_ID_QUAL__ and
+        __SAP_ID_QUAL__)
     """
 
     sql = contract_supporting_docs_sql
