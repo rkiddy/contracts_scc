@@ -1,0 +1,105 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2//EN">
+<html>
+<head>
+    <title>Santa Clara County Active Contracts</title>
+    {% include "styles.html" %}
+    {% include "datatable.html" %}
+    <script>
+        $(document).ready(function () {
+            $('#contracts').DataTable(
+            {
+                    "columns": [
+                        {"name": "Vendor", "orderable": true},
+                        {"name": "Contract ID", "orderable": false},
+                        {"name": "{{ current_year }} Cost", "orderable": false},
+                        {"name": "Total Cost", "orderable": true},
+                        {"name": "Effective<br/>Expiry Date", "orderable": true},
+                        {"name": "Agencies", "orderable": false},
+                        {"name": "Description", "orderable": true},
+                        {"name": "Docs", "orderable": true}
+                    ]
+                }
+            );
+        });
+    </script>
+</head>
+<body>
+<div style="padding: 25px 25px 25px 25px;">
+    {% include "top_nav.html" %}
+    {% include "curr_month.html" %}
+    {% if fetch_key %}
+    <h2>
+        {% if fetch_key == 'vendor_pk' %}
+        Vendor: {{ fetch_value }}
+        {% endif %}
+        {% if fetch_key == 'unit_pk' %}
+        Agency: {{ fetch_value }}
+        {% endif %}
+        {% if fetch_key == 'description' %}
+        Description: {{ fetch_value }}
+        {% endif %}
+        {% if fetch_key == 'bucket' %}
+        Total Cost In: {{ fetch_value }}
+        {% endif %}
+    </h2>
+    {% endif %}
+    <table id="contracts" class="table table-striped">
+        <thead>
+            <tr style="white-space: nowrap;">
+                <th>Vendor</th>
+                <th>Contract ID</th>
+                {% if not has_multiple_months %}
+                <th>{{ current_year }} Cost</th>
+                {% endif %}
+                <th>Total Cost</th>
+                <th>Effective<br/>Expiry Date</th>
+                <th>Agencies</th>
+                <th>Description</th>
+                <th>Docs</th>
+            </tr>
+        </thead>
+        <tbody>
+        {% for contract in contracts %}
+            <tr>
+                <td><a href="/contracts/scc/vendor/{{ contract.vendor_pk }}">{{ contract.vendor_name }}</a></td>
+                <td style = "white-space: nowrap;">
+                    <ul>
+                    {% if contract['contract_id'] %}
+                        <li>cID: {{ contract['contract_id'] }}</li>
+                    {% endif %}
+                    {% if contract['ariba_id'] %}
+                        <li>aID: {{ contract['ariba_id'] }}</li>
+                    {% endif %}
+                    {% if contract['sap_id'] %}
+                        <li>sID: {{ contract['sap_id'] }}</li>
+                    {% endif %}
+                  </ul>
+                </td>
+                {% if not has_multiple_months %}
+                <td style = "white-space: nowrap;">{{ contract.contract_value }}</td>
+                {% endif %}
+                <td style = "white-space: nowrap;">{{ contract.contract_value }}</td>
+                <td>{{ contract.effective_date }}<br/>{{ contract.expir_date }}</td>
+                <td>
+                  <ul>
+                  {% for agency in contract.agencies %}
+                      <li><a href="/contracts/scc/agency/{{ agency.pk }}">{{ agency.name }}</a></li>
+                  {% endfor %}
+                  </ul>
+                </td>
+                <td><a href="/contracts/scc/desc/{{ contract.commodity_desc }}">{{ contract.commodity_desc }}</a></td>
+                <td>
+                    {% if contract.docs %}
+                    <a href="/contracts/scc/contract/{{ contract.contract_pk }}">{{ contract.docs }}</a>
+                    {% else %}
+                    <a href="/contracts/scc/contract/{{ contract.contract_pk }}">---</a>
+                    {% endif %}
+                </td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+    {% include "footer.html" %}
+</div>
+</body>
+</html>
