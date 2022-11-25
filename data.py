@@ -52,16 +52,6 @@ def fill_in_table(rows, columns):
     return result
 
 
-def xorder_dicts_by_key(data, key):
-    results = list()
-    values = sorted(list(set([d[key] for d in data])))
-    for value in values:
-        for data_dict in data:
-            if data_dict[key] == value:
-                results.append(data_dict)
-    return results
-
-
 def results_sorted_by_key(results, sort_label):
     print(f"sort_label: {sort_label}")
     if sort_label is None:
