@@ -65,11 +65,11 @@ def contracts_contract(param):
     return contract.render(**context)
 
 
-@contracts_scc.route(f"/{cfg['WWW']}scc/search", methods=['POST'])
-def contracts_search(sort=None):
-    costs = env.get_template('contracts/contracts_found.html')
-    context = data.build('scc_search', sort)
-    return costs.render(**context)
+@contracts_scc.route(f"/{cfg['WWW']}scc/type/<param>")
+def contracts_types(param):
+    contract = env.get_template('scc_type/scc_type.html')
+    context = data.build_type_data(param)
+    return contract.render(**context)
 
 
 if __name__ == '__main__':

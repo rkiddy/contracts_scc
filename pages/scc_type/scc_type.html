@@ -1,0 +1,52 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2//EN">
+<html>
+<head>
+    <title>Santa Clara County Active Contracts</title>
+    {% include "styles.html" %}
+    {% include "datatable.html" %}
+    <script>
+        $(document).ready(function () {
+            $('#data').DataTable(
+            {
+                    "columns": [
+                        {"name": "{{ thing_label }}", "orderable": true},
+                        {"name": "Total Costs", "orderable": true}
+                    ]
+                }
+            );
+        });
+    </script>
+</head>
+<body>
+<div style="padding: 25px 25px 25px 25px;">
+    {% include "top_nav.html" %}
+    {% include "curr_month.html" %}
+    {% if thing_type == 'agency' %}
+    <p>
+        <strong>Note</strong> that costs assigned to an agency may be higher
+        than they should be. Procurement Department reports give no information
+        that can be used to divide costs for multi-agency contracts. So, if an
+        agency is part of 10 contracts for $1,000,000 each, but the agency only
+        uses half of the value of all the contracts, the total costs associated
+        with the agency will be $10,000,000. Theoretically, the total costs should
+        be $5,000,000 but we are given no way to see this.
+    </p>
+    {% endif %}
+    <table id="data" class="table table-striped">
+      <thead>
+        <tr>
+          <th>{{ thing_label }}</th>
+          <th>Total Costs</th>
+        </tr>
+      </thead>
+      <tbody>
+      {% for thing in things %}
+      <tr>
+        <td><a href="/contracts/scc/{{ thing_type }}/{{ thing.pk }}">{{ thing.name }}</a></td>
+        <td>{{ thing.total_value }}</td>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+</div>
+</body></html>

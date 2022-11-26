@@ -1,10 +1,9 @@
 
-from flask import request
-from sqlalchemy import create_engine, inspect
+from datetime import datetime as dt
 
 from dotenv import dotenv_values
-
-from datetime import datetime as dt
+from flask import request
+from sqlalchemy import create_engine, inspect
 
 cfg = dotenv_values(".env")
 
@@ -28,6 +27,7 @@ cost_buckets = {
 cost_labels = dict()
 for key in cost_buckets:
     cost_labels[cost_buckets[key][0]] = key
+
 
 def latest_month():
     sql = 'select pk, month from months where approved is not NULL order by month desc limit 1;'
@@ -337,61 +337,68 @@ def build_scc_main():
     return context
 
 
-def collapse_found_contracts(contracts):
+def build_type_data(type_info):
 
-    ids = dict()
+    context = {}
 
-    for contract in contracts:
-        key = f"{contract['cID']}_{contract['aID']}_{contract['sID']}"
-        if key not in ids:
-            ids[key] = dict()
-            ids[key]['contracts'] = list()
-            ids[key]['contracts'].append(contract)
-            ids[key]['least'] = contract['month']
-            ids[key]['most'] = contract['month']
-        else:
-            ids[key]['contracts'].append(contract)
-            if contract['month'] < ids[key]['least']:
-                ids[key]['least'] = contract['month']
-            if contract['month'] > ids[key]['most']:
-                ids[key]['most'] = contract['month']
+    [month_pk, month] = latest_month()
+    context['current_month'] = month
+    context['current_year'] = month.split('-')[0]
 
-    next_contracts = list()
-    for key in ids:
-        next_contracts.append(ids[key]['contracts'][0])
-        if ids[key]['least'] != ids[key]['most']:
-            next_contracts[-1]['least'] = ids[key]['least']
-            next_contracts[-1]['most'] = ids[key]['most']
-        else:
-            next_contracts[-1]['only'] = ids[key]['least']
-        next_contracts[-1].pop('month')
+    print(f"type_info: {type_info}")
 
-    return next_contracts
+    if type_info == 'vendors':
+        context['thing_label'] = 'Vendors'
+        context['thing_type'] = 'vendor'
+
+        sql = f"""
+        select c1.vendor_pk,
+            (select name from vendors where pk = c1.vendor_pk) as vendor_name,
+            sum(c1.contract_value) as value_sum
+        from contracts c1
+        where c1.month_pk = {month_pk} group by c1.vendor_pk
+        """
+
+    if type_info == 'agencies':
+        context['thing_label'] = 'Agencies'
+        context['thing_type'] = 'agency'
+
+        sql = f"""
+        select u1.pk, u1.unit_name,
+            (select sum(c1.contract_value)
+                from contracts c1, budget_unit_joins j1
+                where c1.pk = j1.contract_pk and j1.unit_pk = u1.pk and c1.month_pk = {month_pk}) as total_value
+        from budget_units u1
+        """
+
+    if type_info == 'descriptions':
+        context['thing_label'] = 'Descriptions'
+        context['thing_type'] = 'desc'
+
+        sql = f"""
+        select c1.commodity_desc, c1.commodity_desc, sum(c1.contract_value)
+        from contracts c1
+        where c1.month_pk = {month_pk}
+        group by c1.commodity_desc
+        """
+
+    things = fill_in_table(
+        conn.execute(sql).fetchall(),
+        {'pk': 0, 'name': 1, 'total_value': 2})
+
+    next_things = list()
+    for thing in things:
+        if thing['total_value'] is not None:
+            thing['total_value'] = money(thing['total_value'])
+            next_things.append(thing)
+
+    context['things'] = next_things
+    return context
 
 
 def build_scc_contract():
 
-    try:
-        contract_pk = request.path.split('/')[-1]
-    except:
-        contract_pk = '75169'
-
-    contract_sql = """
-    select c1.pk,
-    c1.contract_id, c1.ariba_id, c1.sap_id, c1.vendor_pk, v1.name,
-    c1.contract_value, c1.effective_date, c1,expir_date, c1,commodity_desc
-    from contracts c1, vendors v1
-    where c1.pk = __CONTRACT_PK__ and
-    c1.pk = c1.vendor_pk = v1.pk and
-    c1.month_pk = __MONTH_PK__
-    """
-
-    contract_agencies_sql = """
-    select c1.pk, b1.pk, b1.unit_name
-    from contracts c1, budget_unit_joins j1, budget_units b1
-    where c1.pk = j1.contract_pk and j1.unit_pk = b1.pk and
-    c1.month_pk = __MONTH_PK__
-    """
+    contract_pk = request.path.split('/')[-1]
 
     context = dict()
 
@@ -399,33 +406,46 @@ def build_scc_contract():
     context['current_month'] = month
     context['current_year'] = month.split('-')[0]
 
-    sql = contract_sql
-    sql = sql.replace('__MONTH_PK__', str(month_pk))
-    sql = sql.replace('__LATEST_YEAR__', month.split('-')[0])
-    sql = sql.replace('__CONTRACT_PK__', contract_pk)
+    contract_sql = f"""
+    select c1.pk, c1.contract_id, c1.ariba_id, c1.sap_id,
+        c1.vendor_pk, v1.name, c1.contract_value,
+        c1.effective_date, c1.expir_date, c1.commodity_desc
+    from contracts c1, vendors v1
+    where c1.pk = {contract_pk} and
+        c1.vendor_pk = v1.pk and
+        c1.month_pk = {month_pk}
+    """
+    print(f"contract_sql: {contract_sql}")
 
-    rows = conn.execute(sql).fetchall()
-    cols = {'pk': 0,
-            'cID': 1,
-            'aID': 2,
-            'sID': 3,
-            'vendor_pk': 4,
-            'vendor_name': 5,
-            'sum_year': 6,
-            'sum_all': 7,
-            'eff_date': 8,
-            'exp_date': 9,
-            'description': 10}
+    rows = conn.execute(contract_sql).fetchall()
+    cols = {
+        'pk': 0,
+        'cID': 1,
+        'aID': 2,
+        'sID': 3,
+        'vendor_pk': 4,
+        'vendor_name': 5,
+        'contract_value': 6,
+        'effective_date': 7,
+        'expir_date': 8,
+        'description': 9
+    }
 
     contract = fill_in_table(rows, cols)[0]
+    print(f"contract: {contract}")
 
-    contract['sum_all'] = money(contract['sum_all'])
-    contract['sum_year'] = money(contract['sum_year'])
+    contract['sum_all'] = money(contract['contract_value'])
+    contract['sum_year'] = money(year_value_for_contract(contract))
     contract['agencies'] = dict()
 
-    sql = contract_agencies_sql
-    sql = sql.replace('__MONTH_PK__', str(month_pk))
-    rows = conn.execute(sql).fetchall()
+    contract_agencies_sql = f"""
+    select c1.pk, b1.pk, b1.unit_name
+    from contracts c1, budget_unit_joins j1, budget_units b1
+    where c1.pk = j1.contract_pk and j1.unit_pk = b1.pk and
+    c1.month_pk = {month_pk}
+    """
+
+    rows = conn.execute(contract_agencies_sql).fetchall()
     agencies = fill_in_table(rows, {'contract_pk': 0, 'agency_pk': 1, 'agency_name': 2})
 
     for agency in agencies:
