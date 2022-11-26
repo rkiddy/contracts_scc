@@ -107,7 +107,7 @@ def fetch_contracts(month_pk, fetch_key=None, fetch_value=None):
     sql = f"""
         select c1.pk, c1.owner_name, c1.ariba_id, c1.sap_id, c1.contract_id,
             c1.effective_date, c1.expir_date, c1.contract_value,
-            c1.commodity_desc, c1.uniq_pk, v1.pk, v1.name
+            c1.commodity_desc, v1.pk, v1.name
         from contracts c1, budget_unit_joins j1, budget_units u1, vendors v1, months m1
         where c1.pk = j1.contract_pk
             and j1.unit_pk = u1.pk
@@ -140,9 +140,8 @@ def fetch_contracts(month_pk, fetch_key=None, fetch_value=None):
         'expir_date': 6,
         'contract_value': 7,
         'commodity_desc': 8,
-        'uniq_pk': 9,
-        'vendor_pk': 10,
-        'vendor_name': 11
+        'vendor_pk': 9,
+        'vendor_name': 10
     }
     contracts = fill_in_table(conn.execute(sql).fetchall(), columns)
     contracts_by_pk = dict()
@@ -177,21 +176,28 @@ def fetch_contracts(month_pk, fetch_key=None, fetch_value=None):
 
     contracts = list(contracts_by_pk.values())
 
-    sql = "select contract_uniq_pk, count(0) from supporting_docs group by contract_uniq_pk"
+    sql = "select ariba_id, contract_id, sap_id, pk from supporting_docs"
     columns = {
-        'uniq_pk': 0,
-        'count': 1
+        'ariba_id': 0,
+        'contract_id': 1,
+        'sap_id': 2,
+        'pk': 3
     }
-    uniqs = dict()
-    for uniq in fill_in_table(conn.execute(sql).fetchall(), columns):
-        uniqs[uniq['uniq_pk']] = uniq['count']
+    docs = dict()
+    for doc in fill_in_table(conn.execute(sql).fetchall(), columns):
+        cid = f"{doc['ariba_id']}-{doc['contract_id']}-{doc['sap_id']}"
+        if cid not in docs:
+            docs[cid] = 1
+        else:
+            docs[cid] += 1
 
     for contract in contracts:
+
         contract['contract_value'] = money(contract['contract_value'])
-        if contract['uniq_pk'] in uniqs:
-            contract['docs'] = uniq['count']
-        else:
-            contract['docs'] = None
+
+        cid = f"{contract['ariba_id']}-{contract['contract_id']}-{contract['sap_id']}"
+        if cid in docs:
+            contract['docs'] = docs[cid]
 
     return contracts
 
@@ -391,141 +397,6 @@ def collapse_found_contracts(contracts):
     return next_contracts
 
 
-contracts_list_columns = {
-    'pk': 0,
-    'cID': 1,
-    'aID': 2,
-    'sID': 3,
-    'vendor_pk': 4,
-    'vendor_name': 5,
-    'sum_year': 6,
-    'sum_all': 7,
-    'eff_date': 8,
-    'exp_date': 9,
-    'description': 10}
-
-contracts_search_columns = {
-    'pk': 0,
-    'cID': 1,
-    'aID': 2,
-    'sID': 3,
-    'vendor_pk': 4,
-    'vendor_name': 5,
-    'sum_all': 6,
-    'month': 7,
-    'eff_date': 8,
-    'exp_date': 9,
-    'description': 10}
-
-
-def format_money(contracts):
-    for contract in contracts:
-        if 'sum_year' in contract:
-            contract['sum_year'] = money(contract['sum_year'])
-        if 'sum_all' in contract:
-            contract['sum_all'] = money(contract['sum_all'])
-    return contracts
-
-
-def build_scc_search(sort=None):
-
-    print(f"in build_scc_search, sort = {sort}")
-
-    context = dict()
-
-    context['param'] = ''
-
-    [month_pk, month] = latest_month()
-    context['current_month'] = month
-    context['current_year'] = month.split('-')[0]
-
-    search_type = request.form['search-type']
-    search_term = request.form['search-term']
-
-    sql = """
-     select c1.pk,
-     c1.contract_id, c1.ariba_id, c1.sap_id,
-     c1.vendor_pk, v1.name,
-     c1.contract_value, m1.month,
-     c1.effective_date, c1.expir_date, c1.commodity_desc
-     from contracts c1, vendors v1, months m1
-     where c1.month_pk = m1.pk and
-     __QUAL__
-     c1.vendor_pk = v1.pk
-     order by c1.contract_value desc
-     """
-
-    if search_type == 'contractID' and search_term != '':
-        sql = sql.replace(
-            '__QUAL__',
-            f"(c1.contract_id = '{search_term}' or "
-            f"c1.ariba_id = '{search_term}' or "
-            f"c1.sap_id = '{search_term}') and")
-
-    if search_type == 'vendorName' and search_term != '':
-        sql = sql.replace(
-            '__QUAL__',
-            f"v1.name like '%%{search_term}%%' and")
-
-    if search_type == 'descript' and search_term != '':
-        sql = sql.replace(
-            '__QUAL__',
-            f"lower(c1.commodity_desc) like lower('%%{search_term.upper()}%%') and")
-
-    # print(f"sql: {sql}")
-
-    rows = conn.execute(sql).fetchall()
-
-    contracts = fill_in_table(rows, contracts_search_columns)
-
-    # I searched without specifying month_pk.
-    # Now I have to sort out start, end of unique contracts.
-    #
-    contracts = collapse_found_contracts(contracts)
-
-    contracts = format_money(contracts)
-
-    context['contracts'] = results_sorted_by_key(contracts, sort)
-
-    return context
-
-
-def build_scc_documents():
-
-    context = dict()
-
-    [month_pk, month] = latest_month()
-    context['current_month'] = month
-    context['current_year'] = month.split('-')[0]
-
-    sql = """
-     select c1.pk,
-     c1.contract_id, c1.ariba_id, c1.sap_id,
-     c1.vendor_pk, v1.name,
-     c1.contract_value, m1.month,
-     c1.effective_date, c1.expir_date, c1.commodity_desc
-     from contracts c1, vendors v1, months m1
-     where c1.vendor_pk = v1.pk and
-     c1.uniq_pk in (select contract_uniq_pk from supporting_docs)
-     order by c1.contract_value desc
-     """
-
-    # print(f"sql: {sql}")
-
-    rows = conn.execute(sql).fetchall()
-
-    contracts = fill_in_table(rows, contracts_search_columns)
-
-    # I searched without specifying month_pk.
-    # Now I have to sort out start, end of unique contracts.
-    #
-    contracts = collapse_found_contracts(contracts)
-
-    context['contracts'] = format_money(contracts)
-
-    return context
-
-
 def build_scc_contract():
 
     try:
@@ -545,16 +416,6 @@ def build_scc_contract():
     y1.year = __LATEST_YEAR__ and
     c1.vendor_pk = v1.pk and
     c1.month_pk = __MONTH_PK__
-    """
-
-    contract_allmonths_sql = """
-    select c1.pk,
-    c1.contract_id, c1.ariba_id, c1.sap_id,
-    c1.vendor_pk, v1.name, c1.contract_value,
-    effective_date, expir_date, commodity_desc
-    from contracts c1, vendors v1
-    where c1.pk = __CONTRACT_PK__ and
-    c1.vendor_pk = v1.pk
     """
 
     contract_agencies_sql = """
@@ -588,36 +449,11 @@ def build_scc_contract():
             'exp_date': 9,
             'description': 10}
 
-    contracts = fill_in_table(rows, cols)
+    contract = fill_in_table(rows, cols)[0]
 
-    if not contracts:
-        sql = contract_allmonths_sql
-
-        sql = sql.replace('__CONTRACT_PK__', contract_pk)
-
-        rows = conn.execute(sql).fetchall()
-        cols = {'pk': 0,
-                'cID': 1,
-                'aID': 2,
-                'sID': 3,
-                'vendor_pk': 4,
-                'vendor_name': 5,
-                'sum_all': 6,
-                'eff_date': 7,
-                'exp_date': 8,
-                'description': 9}
-
-        contracts = fill_in_table(rows, cols)
-
-    if not contracts:
-        raise Exception(f"no contract data found for pk: {contract_pk}")
-
-    contracts[0]['sum_all'] = money(contracts[0]['sum_all'])
-    if 'sum_year' in contracts[0]:
-        contracts[0]['sum_year'] = money(contracts[0]['sum_year'])
-    contracts[0]['agencies'] = dict()
-
-    contract = contracts[0]
+    contract['sum_all'] = money(contract['sum_all'])
+    contract['sum_year'] = money(contract['sum_year'])
+    contract['agencies'] = dict()
 
     sql = contract_agencies_sql
     sql = sql.replace('__MONTH_PK__', str(month_pk))
@@ -630,8 +466,6 @@ def build_scc_contract():
             contract['agencies'][pk] = {'pk': pk, 'name': agency['agency_name']}
 
     contract['agencies'] = list(contract['agencies'].values())
-
-    context['contract'] = contract
 
     contract_vendor_info_sql = """
     select key_name, value_str from vendor_infos
@@ -647,33 +481,21 @@ def build_scc_contract():
     if vendor_infos:
         contract['vendor_infos'] = vendor_infos
 
-    contract_supporting_docs_sql = """
+    sql = f"""
     select url from supporting_docs
-    where contract_uniq_pk in
-    (select uniq_pk from contracts where
-        __CONTRACT_ID_QUAL__ and
-        __ARIBA_ID_QUAL__ and
-        __SAP_ID_QUAL__)
+    where ariba_id = '{contract['aID']}' and
+        contract_id = '{contract['cID']}' and
+        sap_id = '{contract['sID']}'
     """
+    sql = sql.replace("= 'None'", 'is NULL')
 
-    sql = contract_supporting_docs_sql
-    if contract['cID']:
-        sql = sql.replace('__CONTRACT_ID_QUAL__', f"contract_id = '{contract['cID']}'")
-    else:
-        sql = sql.replace('__CONTRACT_ID_QUAL__', f"contract_id is NULL")
-    if contract['aID']:
-        sql = sql.replace('__ARIBA_ID_QUAL__', f"ariba_id = '{contract['aID']}'")
-    else:
-        sql = sql.replace('__ARIBA_ID_QUAL__', f"ariba_id is NULL")
-    if contract['sID']:
-        sql = sql.replace('__SAP_ID_QUAL__', f"sap_id = '{contract['sID']}'")
-    else:
-        sql = sql.replace('__SAP_ID_QUAL__', f"sap_id is NULL")
+    docs = list()
+    for doc in conn.execute(sql).fetchall():
+        docs.append(doc['url'])
 
-    rows = conn.execute(sql).fetchall()
-    supporting_docs = fill_in_table(rows, {'url': 0})
+    if len(docs) > 0:
+        contract['supporting_docs'] = docs
 
-    if supporting_docs:
-        context['contract']['supporting_docs'] = supporting_docs
+    context['contract'] = contract
 
     return context

@@ -36,6 +36,16 @@
             <td>{{ contract.description }}</td>
         </tr>
     </table>
+    {% if contract.supporting_docs %}
+    <table class="table table-striped">
+        <caption>Supporting Documents</caption>
+        {% for doc in contract.supporting_docs %}
+        <tr>
+            <td><a href="{{ doc }}" target = "blank">{{ doc }}</a></td>
+        </tr>
+        {% endfor %}
+    </table>
+    {% endif %}
     {% if contract.vendor_infos %}
     <table class="table table-striped">
         <caption>Vendor Info</caption>
@@ -43,16 +53,6 @@
         <tr>
             <td>{{ info.key_name }}</td>
             <td>{{ info.value_str }}</td>
-        </tr>
-        {% endfor %}
-    </table>
-    {% endif %}
-    {% if contract.supporting_docs %}
-    <table class="table table-striped">
-        <caption>Supporting Documents</caption>
-        {% for doc in contract.supporting_docs %}
-        <tr>
-            <td><a href="{{ doc.url }}" target = "blank">{{ doc.url }}</a></td>
         </tr>
         {% endfor %}
     </table>

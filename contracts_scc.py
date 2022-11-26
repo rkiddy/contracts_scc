@@ -58,13 +58,6 @@ def contracts_bucket(bucket):
     return main.render(**context)
 
 
-@contracts_scc.route(f"/{cfg['WWW']}scc/with_docs")
-def contracts_docs():
-    costs = env.get_template('contracts/contracts_found.html')
-    context = data.build_scc_documents()
-    return costs.render(**context)
-
-
 @contracts_scc.route(f"/{cfg['WWW']}scc/contract/<param>")
 def contracts_contract(param):
     contract = env.get_template('contract/contract.html')

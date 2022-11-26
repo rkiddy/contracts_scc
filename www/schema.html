@@ -25,7 +25,6 @@
 | budget_unit_joins          |
 | budget_unit_replaces       |
 | budget_units               |
-| contract_uniqs             |
 | contract_years             |
 | contracts                  |
 | months                     |
@@ -76,16 +75,6 @@ CREATE TABLE `budget_units` (
   PRIMARY KEY (`pk`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci
 
-CREATE TABLE `contract_uniqs` (
-  `pk` int NOT NULL,
-  `ariba_id` varchar(31) DEFAULT NULL,
-  `sap_id` varchar(31) DEFAULT NULL,
-  `contract_id` varchar(31) DEFAULT NULL,
-  PRIMARY KEY (`pk`),
-  UNIQUE KEY `ariba_id` (`ariba_id`,`sap_id`,`contract_id`),
-  KEY `ariba_id_2` (`ariba_id`,`sap_id`,`contract_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3
-
 CREATE TABLE `contract_years` (
   `pk` int NOT NULL,
   `contract_pk` int DEFAULT NULL,
@@ -112,7 +101,6 @@ CREATE TABLE `contracts` (
   `month_pk` int DEFAULT NULL,
   `source_pk` int DEFAULT NULL,
   `line_num` int DEFAULT NULL,
-  `uniq_pk` int DEFAULT NULL,
   PRIMARY KEY (`pk`),
   KEY `month_pk` (`month_pk`),
   KEY `vendor_name` (`vendor_name`),
@@ -158,7 +146,6 @@ CREATE TABLE `sources` (
 
 CREATE TABLE `supporting_doc_requests` (
   `pk` int NOT NULL,
-  `contract_uniq_pk` int DEFAULT NULL,
   `ariba_id` varchar(31) DEFAULT NULL,
   `contract_id` varchar(31) DEFAULT NULL,
   `sap_id` varchar(31) DEFAULT NULL,
@@ -171,7 +158,6 @@ CREATE TABLE `supporting_doc_requests` (
 
 CREATE TABLE `supporting_docs` (
   `pk` int NOT NULL,
-  `contract_uniq_pk` int DEFAULT NULL,
   `vendor_pk` int DEFAULT NULL,
   `contract_id` varchar(31) DEFAULT NULL,
   `sap_id` varchar(31) DEFAULT NULL,
