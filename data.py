@@ -23,10 +23,11 @@ cost_buckets = {
     'B7': [1000000, 10000000],
     'B8': [10000000, 100000000]}
 
+# cost_labels will be: cost_labels[ <min cost> ] -> bucket key
+#     eg: cost_labels[100] = B3
 cost_labels = dict()
 for key in cost_buckets:
     cost_labels[cost_buckets[key][0]] = key
-
 
 def latest_month():
     sql = 'select pk, month from months where approved is not NULL order by month desc limit 1;'
@@ -227,9 +228,9 @@ def agency_contracts(unit_pk):
     context = contracts_for_key_value('unit_pk', unit_pk)
     context['fetch_key'] = 'unit_pk'
     agency_name = None
-    for agency in context['contracts'][0]['agencies']:
-        if int(agency['pk']) == int(unit_pk):
-            agency_name = agency['name']
+    for agency_info in context['contracts'][0]['agencies']:
+        if int(agency_info['pk']) == int(unit_pk):
+            agency_name = agency_info['name']
     context['fetch_value'] = agency_name
     return context
 
@@ -250,96 +251,79 @@ def bucket_contracts(bucket):
 
 def build_scc_main():
 
-    top_vendors_sql = """
-    select v1.pk as vendorPk, v1.name as vendor_name,
-    sum(y1.contract_value) as total_value
-    from contracts c1, contract_years y1, vendors v1
-    where c1.pk = y1.contract_pk
-    and c1.vendor_pk = v1.pk
-    and c1.month_pk = __MONTH_PK__ and y1.year = __LATEST_YEAR__
-    group by v1.pk order by total_value desc limit 5
-    """
-
-    top_agencies_sql = """
-    select unit_pk as agency_pk,
-    (select unit_name from budget_units where pk = agency_pk) as agency_name,
-    (select sum(y1.contract_value) from contracts c1,
-    budget_unit_joins j1, contract_years y1
-    where c1.pk = j1.contract_pk and
-    y1.contract_pk = c1.pk and
-    y1.year = __LATEST_YEAR__ and
-    j1.unit_pk = agency_pk and
-    c1.month_pk = __MONTH_PK__) as total_value
-    from budget_unit_joins group by unit_pk
-    order by total_value desc limit 5
-    """
-
-    top_descs_sql = """
-    select commodity_desc as description,
-    sum(contract_value) as total_value
-    from contracts where month_pk = __MONTH_PK__
-    group by commodity_desc order by total_value desc limit 5
-    """
-
-    costs_sql = """
-    select c1.pk, y1.contract_value from contracts c1, contract_years y1
-    where c1.pk = y1.contract_pk
-    and y1.year = __LATEST_YEAR__
-    and c1.month_pk = __MONTH_PK__
-    and y1.contract_value >= __MIN__
-    and y1.contract_value < __MAX__
-    """
-
     context = dict()
 
     [month_pk, month] = latest_month()
     context['current_month'] = month
     context['current_year'] = month.split('-')[0]
 
-    sql = top_vendors_sql
-    sql = sql.replace('__MONTH_PK__', str(month_pk))
-    sql = sql.replace('__LATEST_YEAR__', month.split('-')[0])
+    top_vendors_sql = f"""
+    select v1.pk as vendorPk, v1.name as vendor_name,
+    sum(c1.contract_value) as total_value
+    from contracts c1, vendors v1
+    where c1.vendor_pk = v1.pk
+    and c1.month_pk = {month_pk}
+    group by v1.pk order by total_value desc limit 5
+    """
 
-    rows = conn.execute(sql).fetchall()
-    context['top_vendors'] = fill_in_table(rows, {'pk': 0, 'name': 1, 'amount': 2})
+    top_agencies_sql = f"""
+    select unit_pk as agency_pk,
+        (select unit_name from budget_units where pk = agency_pk) as agency_name,
+        (select sum(c1.contract_value)
+    from contracts c1, budget_unit_joins j1
+    where c1.pk = j1.contract_pk and
+        j1.unit_pk = agency_pk and
+        c1.month_pk = {month_pk}) as total_value
+    from budget_unit_joins group by unit_pk
+    order by total_value desc limit 5
+    """
 
-    sql = top_agencies_sql
-    sql = sql.replace('__MONTH_PK__', str(month_pk))
-    sql = sql.replace('__LATEST_YEAR__', month.split('-')[0])
+    top_descs_sql = f"""
+    select commodity_desc as description,
+    sum(contract_value) as total_value
+    from contracts where month_pk = {month_pk}
+    group by commodity_desc order by total_value desc limit 5
+    """
 
-    rows = conn.execute(sql).fetchall()
-    context['top_agencies'] = fill_in_table(rows, {'pk': 0, 'name': 1, 'amount': 2})
+    context['top_vendors'] = fill_in_table(
+        conn.execute(top_vendors_sql).fetchall(),
+        {'pk': 0, 'name': 1, 'amount': 2})
 
-    sql = top_descs_sql
-    sql = sql.replace('__MONTH_PK__', str(month_pk))
-    sql = sql.replace('__LATEST_YEAR__', month.split('-')[0])
+    context['top_agencies'] = fill_in_table(
+        conn.execute(top_agencies_sql).fetchall(),
+        {'pk': 0, 'name': 1, 'amount': 2})
 
-    rows = conn.execute(sql).fetchall()
-    context['top_descs'] = fill_in_table(rows, {'name': 0, 'amount': 1})
+    context['top_descs'] = fill_in_table(
+        conn.execute(top_descs_sql).fetchall(),
+        {'name': 0, 'amount': 1})
 
     costs_tables = list()
-    min = 0
-    max = 1
+    bucket_min = 0
+    bucket_max = 1
 
     for idx in range(len(cost_buckets.keys())):
-        sql = costs_sql
-        sql = sql.replace('__MONTH_PK__', str(month_pk))
-        sql = sql.replace('__LATEST_YEAR__', month.split('-')[0])
-        sql = sql.replace('__MIN__', str(min * 100))
-        sql = sql.replace('__MAX__', str(max * 100))
 
-        rows = conn.execute(sql).fetchall()
+        costs_sql = f"""
+        select c1.pk, c1.contract_value from contracts c1
+        where c1.month_pk = {month_pk}
+            and c1.contract_value >= {bucket_min * 100}
+            and c1.contract_value < {bucket_max * 100}
+        """
+
+        rows = conn.execute(costs_sql).fetchall()
         contracts_count = len(rows)
         contracts_sum = sum([r['contract_value'] for r in rows])
         costs_tables.append(
-            {'min': f"{min}.00",
-             'max': f"{max}.00",
-             'label': cost_labels[min],
-             'sum': money(contracts_sum),
-             'count': int(contracts_count)})
+            {
+                'bucket': cost_labels[bucket_min],
+                'bucket_label': f"{money(bucket_min * 100)} - {money(bucket_max * 100)}",
+                'sum': money(contracts_sum),
+                'count': int(contracts_count)
+            }
+        )
 
-        min = max
-        max = max * 10
+        bucket_min = bucket_max
+        bucket_max = bucket_max * 10
 
     context['costs'] = costs_tables
 
@@ -394,15 +378,11 @@ def build_scc_contract():
 
     contract_sql = """
     select c1.pk,
-    c1.contract_id, c1.ariba_id, c1.sap_id,
-    c1.vendor_pk, v1.name,
-    y1.contract_value, c1.contract_value,
-    effective_date, expir_date, commodity_desc
-    from contracts c1, contract_years y1, vendors v1
+    c1.contract_id, c1.ariba_id, c1.sap_id, c1.vendor_pk, v1.name,
+    c1.contract_value, c1.effective_date, c1,expir_date, c1,commodity_desc
+    from contracts c1, vendors v1
     where c1.pk = __CONTRACT_PK__ and
-    c1.pk = y1.contract_pk and
-    y1.year = __LATEST_YEAR__ and
-    c1.vendor_pk = v1.pk and
+    c1.pk = c1.vendor_pk = v1.pk and
     c1.month_pk = __MONTH_PK__
     """
 

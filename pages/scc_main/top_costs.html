@@ -1,21 +1,19 @@
 <p>
   <blockquote>
-    <strong>All Contracts Grouped By {{ current_year }} Cost</strong>
+    <strong>All Contracts Grouped By Total Cost</strong>
     <table class = "table table-striped">
       <thead>
         <tr>
-          <th>Minimum (&gt;=)</th>
-          <th>Maximum (&lt;)</th>
+          <th>Costs</th>
           <th>Count</th>
-          <th>Sum of {{ current_year }} Contract Costs</th>
+          <th>Sum of Total Contract Costs</th>
         </tr>
       </thead>
       <tbody>
         {% for cost in costs %}
         <tr>
-          <td>{{ cost.min }}</td>
-          <td>{{ cost.max }}</td>
-          <td><a href="/contracts/scc/bucket/{{ cost.label }}">{{ cost.count }}</a></td>
+          <td>{{ cost.bucket_label }}</td>
+          <td><a href="/contracts/scc/bucket/{{ cost.bucket }}">{{ cost.count }}</a></td>
           <td style = "white-space: nowrap;">{{ cost.sum }}</td>
         </tr>
         {% endfor %}

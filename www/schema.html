@@ -25,7 +25,6 @@
 | budget_unit_joins          |
 | budget_unit_replaces       |
 | budget_units               |
-| contract_years             |
 | contracts                  |
 | months                     |
 | source_errors              |
@@ -74,15 +73,6 @@ CREATE TABLE `budget_units` (
   `name_in_budget` varchar(127) DEFAULT NULL,
   PRIMARY KEY (`pk`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci
-
-CREATE TABLE `contract_years` (
-  `pk` int NOT NULL,
-  `contract_pk` int DEFAULT NULL,
-  `year` int DEFAULT NULL,
-  `contract_value` bigint DEFAULT NULL,
-  PRIMARY KEY (`pk`),
-  KEY `contract_pk` (`contract_pk`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3
 
 CREATE TABLE `contracts` (
   `pk` int NOT NULL,
