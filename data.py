@@ -52,50 +52,6 @@ def fill_in_table(rows, columns):
     return result
 
 
-def results_sorted_by_key(results, sort_label):
-    print(f"sort_label: {sort_label}")
-    if sort_label is None:
-        return results
-
-    sortish = None
-    if sort_label[1] == 'v':
-        sortish = 'name'
-    if sort_label[1] == 'c':
-        sortish = 'sum_year'
-    if sort_label[1] == 'a':
-        sortish = 'unit_name'
-    if sort_label == 'd':
-        sortish = 'description'
-    if sort_label[1] == 'f':
-        sortish = 'eff_date'
-    if sort_label[1] == 'x':
-        sortish = 'exp_date'
-
-    if sortish is None:
-        print(f"Cannot find key for label: {sort_label}")
-        return results
-
-    next_result_values = dict()
-
-    for result in results:
-        print(f"result: {result}")
-        key_val = result[sortish]
-        if key_val not in next_result_values:
-            next_result_values[key_val] = list()
-        next_result_values[key_val].append(result)
-
-    next_results = list()
-
-    key_list = sorted(next_result_values.keys())
-    if sort_label[2] == 'a':
-        key_list.reverse()
-
-    for key in key_list:
-        next_results.extend(next_result_values[key])
-
-    return next_results
-
-
 def fetch_contracts(month_pk, fetch_key=None, fetch_value=None):
 
     # also:
