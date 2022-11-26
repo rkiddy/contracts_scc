@@ -75,9 +75,7 @@
                     {% endif %}
                   </ul>
                 </td>
-                {% if not has_multiple_months %}
-                <td style = "white-space: nowrap;">{{ contract.contract_value }}</td>
-                {% endif %}
+                <td style = "white-space: nowrap;">{{ contract.year_value }}</td>
                 <td style = "white-space: nowrap;">{{ contract.contract_value }}</td>
                 <td>{{ contract.effective_date }}<br/>{{ contract.expir_date }}</td>
                 <td>

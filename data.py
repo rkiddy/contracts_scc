@@ -4,6 +4,8 @@ from sqlalchemy import create_engine, inspect
 
 from dotenv import dotenv_values
 
+from datetime import datetime as dt
+
 cfg = dotenv_values(".env")
 
 engine = create_engine(f"mysql+pymysql://ray:{cfg['PWD']}@{cfg['HOST']}/{cfg['DB']}")
@@ -32,6 +34,10 @@ def latest_month():
     return [row['pk'], row['month']]
 
 
+def latest_year():
+    return latest_month()[1].split('-')[0]
+
+
 def money(cents):
     cents = int(cents) / 100
     cents = str(cents)
@@ -50,6 +56,30 @@ def fill_in_table(rows, columns):
                 found[key] = row[columns[key]]
         result.append(found)
     return result
+
+
+def year_value_for_contract(contract, latest_yr=latest_year()):
+
+    start = contract['effective_date']
+    end = contract['expir_date']
+
+    contract_start = dt.strptime(start, '%Y-%m-%d')
+    contract_end = dt.strptime(end, '%Y-%m-%d')
+    contract_diff = (contract_end - contract_start).days
+
+    year_start = dt(int(latest_yr), 1, 1)
+    year_end = dt(int(latest_yr), 12, 31)
+
+    if year_start < contract_start:
+        year_start = contract_start
+    if year_end > contract_end:
+        year_end = contract_end
+
+    year_diff = (year_end - year_start).days
+
+    fraction = year_diff / contract_diff
+
+    return int(fraction * contract['contract_value'])
 
 
 def fetch_contracts(month_pk, fetch_key=None, fetch_value=None):
@@ -148,6 +178,8 @@ def fetch_contracts(month_pk, fetch_key=None, fetch_value=None):
             docs[cid] += 1
 
     for contract in contracts:
+
+        contract['year_value'] = money(year_value_for_contract(contract))
 
         contract['contract_value'] = money(contract['contract_value'])
 
