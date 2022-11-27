@@ -24,11 +24,14 @@ cost_buckets = {
     'B9': [100000000, 10000000000]
 }
 
+
 # cost_labels will be: cost_labels[ <min cost> ] -> bucket key
 #     eg: cost_labels[100] = B3
-cost_labels = dict()
-for key in cost_buckets:
-    cost_labels[cost_buckets[key][0]] = key
+def cost_labels(num):
+    for key in cost_buckets:
+        if cost_buckets[key][0] == num:
+            return key
+    raise Exception("Could not find number to identif key")
 
 
 def latest_month():
@@ -62,25 +65,31 @@ def fill_in_table(rows, columns):
 
 
 def year_value_for_contract(contract, latest_yr=latest_year()):
-
-    start = contract['effective_date']
-    end = contract['expir_date']
-
-    contract_start = dt.strptime(start, '%Y-%m-%d')
-    contract_end = dt.strptime(end, '%Y-%m-%d')
-    contract_diff = (contract_end - contract_start).days
+    """
+    :param contract: has an 'effective_date' and 'expir_date' (both
+    str) and a 'contract_value' (int).
+    :param latest_yr: defaults to current year (str)
+    :return: the fraction of the contract_value represented by the
+    current year within the interval of the contract (int).
+    """
+    c_start = dt.strptime(contract['effective_date'], '%Y-%m-%d')
+    c_end = dt.strptime(contract['expir_date'], '%Y-%m-%d')
+    c_diff = (c_end - c_start).days + 1
 
     year_start = dt(int(latest_yr), 1, 1)
     year_end = dt(int(latest_yr), 12, 31)
 
-    if year_start < contract_start:
-        year_start = contract_start
-    if year_end > contract_end:
-        year_end = contract_end
+    if year_end < c_start or year_start > c_end:
+        return 0
 
-    year_diff = (year_end - year_start).days
+    if year_start < c_start:
+        year_start = c_start
+    if year_end > c_end:
+        year_end = c_end
 
-    fraction = year_diff / contract_diff
+    year_diff = (year_end - year_start).days + 1
+
+    fraction = year_diff / c_diff
 
     return int(fraction * contract['contract_value'])
 
@@ -317,7 +326,7 @@ def build_scc_main():
         contracts_sum = sum([r['contract_value'] for r in rows])
         costs_tables.append(
             {
-                'bucket': cost_labels[bucket_min],
+                'bucket': cost_labels(bucket_min),
                 'bucket_label': f"{money(bucket_min * 100)} - {money(bucket_max * 100)}",
                 'sum': money(contracts_sum),
                 'count': int(contracts_count)
@@ -355,6 +364,8 @@ def build_type_data(type_info):
     [month_pk, month] = latest_month()
     context['current_month'] = month
     context['current_year'] = month.split('-')[0]
+
+    sql = None
 
     if type_info == 'vendors':
         context['thing_label'] = 'Vendors'

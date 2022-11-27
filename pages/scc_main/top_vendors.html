@@ -13,8 +13,8 @@
     <tbody>
         {% for vendor in top_vendors %}
         <tr>
-          <td><a href="/contracts/scc/vendor/{{ vendor.pk }}">{{ vendor.name }}</a></td>
-          <td style = "white-space: nowrap;">{{ vendor.amount }}</td>
+          <td id="vendor_{{ vendor.pk }}"><a href="/contracts/scc/vendor/{{ vendor.pk }}">{{ vendor.name }}</a></td>
+          <td id="vendor_amt_{{ vendor.pk }}" style = "white-space: nowrap;">{{ vendor.amount }}</td>
         </tr>
         {% endfor %}
     </tbody>

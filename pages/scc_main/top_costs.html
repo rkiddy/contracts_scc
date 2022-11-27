@@ -13,14 +13,14 @@
         {% for cost in costs %}
         <tr>
           <td>{{ cost.bucket_label }}</td>
-          <td><a href="/contracts/scc/bucket/{{ cost.bucket }}">{{ cost.count }}</a></td>
-          <td style = "white-space: nowrap;">{{ cost.sum }}</td>
+          <td id="bucket_{{ cost.bucket }}"><a href="/contracts/scc/bucket/{{ cost.bucket }}">{{ cost.count }}</a></td>
+          <td id="bucket_amt_{{ cost.bucket }}" style = "white-space: nowrap;">{{ cost.sum }}</td>
         </tr>
         {% endfor %}
         <tr>
           <td>All</td>
-          <td><a href="/contracts/scc/all">{{ all_count }}</a></td>
-          <td>{{ all_sum }}</td>
+          <td id="bucket_all"><a href="/contracts/scc/all">{{ all_count }}</a></td>
+          <td id="bucket_amt">{{ all_sum }}</td>
         </tr>
       </tbody>
     </table>

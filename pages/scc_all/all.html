@@ -30,16 +30,16 @@
     {% if fetch_key %}
     <h2>
         {% if fetch_key == 'vendor_pk' %}
-        Vendor: {{ fetch_value }}
+        <div id="vendor_label">Vendor: {{ fetch_value }}</div>
         {% endif %}
         {% if fetch_key == 'unit_pk' %}
-        Agency: {{ fetch_value }}
+        <div id="agency_label">Agency: {{ fetch_value }}</div>
         {% endif %}
         {% if fetch_key == 'description' %}
-        Description: {{ fetch_value }}
+        <div id="desc_label">Description: {{ fetch_value }}</div>
         {% endif %}
         {% if fetch_key == 'bucket' %}
-        Total Cost In: {{ fetch_value }}
+        <div id="cost_label">Total Cost In: {{ fetch_value }}</div>
         {% endif %}
     </h2>
     {% endif %}
@@ -60,7 +60,7 @@
         </thead>
         <tbody>
         {% for contract in contracts %}
-            <tr>
+            <tr id="contract_{{ contract.contract_pk }}">
                 <td><a href="/contracts/scc/vendor/{{ contract.vendor_pk }}">{{ contract.vendor_name }}</a></td>
                 <td style = "white-space: nowrap;">
                     <ul>

@@ -13,8 +13,8 @@
     <tbody>
         {% for desc in top_descs %}
         <tr>
-          <td><a href="/contracts/scc/desc/{{ desc.name }}">{{ desc.name }}</a></td>
-          <td style = "white-space: nowrap;">{{ desc.amount }}</td>
+          <td id="desc_{{ desc.name }}"><a href="/contracts/scc/desc/{{ desc.name }}">{{ desc.name }}</a></td>
+          <td id="desc_amt_{{ desc.name }}" style = "white-space: nowrap;">{{ desc.amount }}</td>
         </tr>
         {% endfor %}
     </tbody>

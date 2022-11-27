@@ -45,7 +45,7 @@
             <th>Docs</th>
         </tr>
         {% for contract in contracts %}
-            <tr>
+            <tr id="contract_{{ contract.pk }}">
                 <td style = "white-space: nowrap;">
                     <a href="/contracts/scc/contract/{{ contract.pk }}">{% include "contracts/contract_id.html" %}</a>
                     {% if contract.least %}
@@ -82,7 +82,7 @@
                     <a href="/contracts/scc/desc/{{ contract.description }}">{{ contract.description }}</a>
                     {% endif %}
                 </td>
-		<td>{{ contract.count_docs }}</td>
+		        <td>{{ contract.count_docs }}</td>
             </tr>
         {% endfor %}
         </table>
