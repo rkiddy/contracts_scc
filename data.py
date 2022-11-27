@@ -20,7 +20,9 @@ cost_buckets = {
     'B5': [10000, 100000],
     'B6': [100000, 1000000],
     'B7': [1000000, 10000000],
-    'B8': [10000000, 100000000]}
+    'B8': [10000000, 100000000],
+    'B9': [100000000, 10000000000]
+}
 
 # cost_labels will be: cost_labels[ <min cost> ] -> bucket key
 #     eg: cost_labels[100] = B3
@@ -266,6 +268,10 @@ def build_scc_main():
     group by v1.pk order by total_value desc limit 5
     """
 
+    context['top_vendors'] = fill_in_table(
+        conn.execute(top_vendors_sql).fetchall(),
+        {'pk': 0, 'name': 1, 'amount': 2})
+
     top_agencies_sql = f"""
     select unit_pk as agency_pk,
         (select unit_name from budget_units where pk = agency_pk) as agency_name,
@@ -278,20 +284,16 @@ def build_scc_main():
     order by total_value desc limit 5
     """
 
+    context['top_agencies'] = fill_in_table(
+        conn.execute(top_agencies_sql).fetchall(),
+        {'pk': 0, 'name': 1, 'amount': 2})
+
     top_descs_sql = f"""
     select commodity_desc as description,
     sum(contract_value) as total_value
     from contracts where month_pk = {month_pk}
     group by commodity_desc order by total_value desc limit 5
     """
-
-    context['top_vendors'] = fill_in_table(
-        conn.execute(top_vendors_sql).fetchall(),
-        {'pk': 0, 'name': 1, 'amount': 2})
-
-    context['top_agencies'] = fill_in_table(
-        conn.execute(top_agencies_sql).fetchall(),
-        {'pk': 0, 'name': 1, 'amount': 2})
 
     context['top_descs'] = fill_in_table(
         conn.execute(top_descs_sql).fetchall(),
@@ -326,6 +328,15 @@ def build_scc_main():
         bucket_max = bucket_max * 10
 
     context['costs'] = costs_tables
+
+    sql = f"""
+    select count(0) as count, sum(contract_value) as sum_costs
+    from contracts where month_pk = {month_pk}
+    """
+
+    row = conn.execute(sql).fetchone()
+    context['all_count'] = int(row['count'])
+    context['all_sum'] = money(int(row['sum_costs']))
 
     context['sources'] = dict()
     sql = f"select source_url from sources where month_pk = {month_pk} and source_url like '%%document/Contract%%'"
