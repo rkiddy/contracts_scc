@@ -345,8 +345,6 @@ def build_type_data(type_info):
     context['current_month'] = month
     context['current_year'] = month.split('-')[0]
 
-    print(f"type_info: {type_info}")
-
     if type_info == 'vendors':
         context['thing_label'] = 'Vendors'
         context['thing_type'] = 'vendor'
@@ -415,7 +413,6 @@ def build_scc_contract():
         c1.vendor_pk = v1.pk and
         c1.month_pk = {month_pk}
     """
-    print(f"contract_sql: {contract_sql}")
 
     rows = conn.execute(contract_sql).fetchall()
     cols = {
@@ -432,7 +429,6 @@ def build_scc_contract():
     }
 
     contract = fill_in_table(rows, cols)[0]
-    print(f"contract: {contract}")
 
     contract['sum_all'] = money(contract['contract_value'])
     contract['sum_year'] = money(year_value_for_contract(contract))
