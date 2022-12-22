@@ -7,17 +7,13 @@ To begin:
 
     $ python3 -m venv .venv
     $ . .venv/bin/activate
-    $ pip install Flask
-    $ pip install python-dotenv # not dotenv, not dotenv-python
-    $ pip install sqlalchemy
-    $ pip install pymysql
-    $ pip install cryptography
+    $ pip install -r requirements.txt
 
 (because I used python3 when I created the venv, pip does the right thing.)
 
 and then:
 
-    $ FLASK_APP=hello.py python -m flask run
+    $ python -m flask run
 
 and then I can get to the app at:
 
@@ -31,22 +27,24 @@ Put this into a .env file at the root of the project:
     FLASK_ENV=development
     FLASK_DEBUG=1
     FLASK_RUN_PORT=8080
+    APP_HOME=<dir>/contracts
+    HOST=<db_host>
+    PWD=<db_pwd>
+    DB=<db_name>
+    WWW=/
 
 finally, run as:
 
  % python -m flask run
 
-To Do:
+The WWW symbol is used to allow both a server-based and local launch. On a production
+host, the app url has a prefix, such as "contracts". On a local execution, this prefix
+is set to "contracts/" so that the pages' links can work the same on both locally and
+remotely run instances.
 
-- Put the CA (SoS) number alongside the vendor name in the lists.
-
-- On Agencies page and especially the Descriptions page, the right-side column
-list is very long. This should be an ajax-ish list which says (# found is ...)
-and then a click expands the list and there should be an 'Expand All' in the
-column header at the right.
-
-- On the Vendors page, there should be a column that shows number of contracts.
-
-- On pages other then the Vendors page, the number of contracts could be
-displayed along with the vendor name.
-
+The Santa Clara County Civil Grand Jury issued a
+<a href="https://www.scscourt.org/court_divisions/civil/cgj/2022/Garbage%20In,%20Garbage%20Out%20-%20Santa%20Clara%20County%20Public%20Contract%20Data.pdf">report</a>
+(<a href="https://opencalaccess.org/contracts_scc/SCC_CGJ_2022_PD.pdf">backup</a>)
+on December 15, 2022 that lays out many of my issues with the Procurement
+Department and uses its access to internal information to lay out many more of the
+issues and problems with the system run by the Department.
