@@ -7,7 +7,7 @@ from sqlalchemy import create_engine, inspect
 
 cfg = dotenv_values(".env")
 
-engine = create_engine(f"mysql+pymysql://ray:{cfg['PWD']}@{cfg['HOST']}/{cfg['DB']}")
+engine = create_engine(f"mysql+pymysql://{cfg['USR']}:{cfg['PWD']}@{cfg['HOST']}/{cfg['DB']}")
 conn = engine.connect()
 inspector = inspect(engine)
 
@@ -52,6 +52,11 @@ def money(cents):
 
 # rows is a result cursor, columns is a dictionary or key -> column number in rows.
 def fill_in_table(rows, columns):
+    """
+    :param rows: data, probably from a database fetch.
+    :param columns: names to use in result dictionaries.
+    :return: for each row given, a dictionary with the keys as desired.
+    """
     result = list()
     for row in rows:
         found = dict()
@@ -67,10 +72,10 @@ def fill_in_table(rows, columns):
 def year_value_for_contract(contract, latest_yr=latest_year()):
     """
     :param contract: has an 'effective_date' and 'expir_date' (both
-    str) and a 'contract_value' (int).
+        str like '%Y-%m-%d') and a 'contract_value' (int).
     :param latest_yr: defaults to current year (str)
     :return: the fraction of the contract_value represented by the
-    current year within the interval of the contract (int).
+        current year within the interval of the contract (int).
     """
     c_start = dt.strptime(contract['effective_date'], '%Y-%m-%d')
     c_end = dt.strptime(contract['expir_date'], '%Y-%m-%d')
@@ -240,8 +245,8 @@ def agency_contracts(unit_pk):
     context['fetch_key'] = 'unit_pk'
     agency_name = None
     for agency_info in context['contracts'][0]['agencies']:
-        if int(agency_info['pk']) == int(unit_pk):
-            agency_name = agency_info['name']
+        if int(dict(agency_info)['pk']) == int(unit_pk):
+            agency_name = dict(agency_info)['name']
     context['fetch_value'] = agency_name
     return context
 
