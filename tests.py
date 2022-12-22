@@ -40,7 +40,9 @@ def test_year_value_for_contract():
         'contract_value': 36900
     }
 
+    assert data.year_value_for_contract(c, '2021') == 200
     assert data.year_value_for_contract(c, '2022') == 36500
+    assert data.year_value_for_contract(c, '2023') == 200
 
 
 def test_money():
