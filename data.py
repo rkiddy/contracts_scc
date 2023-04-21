@@ -108,7 +108,10 @@ def fetch_contracts(month_pk, fetch_key=None, fetch_value=None):
     # <a href="/contracts/scc/bucket/{{ bucket }}">
 
     sql = f"""
-        select c1.pk, c1.owner_name, c1.ariba_id, c1.sap_id, c1.contract_id,
+        select c1.pk, c1.owner_name,
+            (select id_value from contract_ids where id_type = 'a' and contract_pk = c1.pk) as ariba_id,
+            (select id_value from contract_ids where id_type = 's' and contract_pk = c1.pk) as sap_id,
+            (select id_value from contract_ids where id_type = 'c' and contract_pk = c1.pk) as contract_id,
             c1.effective_date, c1.expir_date, c1.contract_value,
             c1.commodity_desc, v1.pk, v1.name
         from contracts c1, budget_unit_joins j1, budget_units u1, vendors v1, months m1
@@ -432,7 +435,10 @@ def build_scc_contract():
     context['current_year'] = month.split('-')[0]
 
     contract_sql = f"""
-    select c1.pk, c1.contract_id, c1.ariba_id, c1.sap_id,
+    select c1.pk,
+        (select id_value from contract_ids where id_type = 'a' and contract_pk = c1.pk) as ariba_id,
+        (select id_value from contract_ids where id_type = 's' and contract_pk = c1.pk) as sap_id,
+        (select id_value from contract_ids where id_type = 'c' and contract_pk = c1.pk) as contract_id,
         c1.vendor_pk, v1.name, c1.contract_value,
         c1.effective_date, c1.expir_date, c1.commodity_desc
     from contracts c1, vendors v1
