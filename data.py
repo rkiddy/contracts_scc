@@ -353,10 +353,10 @@ def build_scc_main():
     context['all_sum'] = money(int(row['sum_costs']))
 
     context['sources'] = dict()
-    sql = f"select source_url from sources where month_pk = {month_pk} and source_url like '%%document/Contract%%'"
+    sql = f"select source_url from sources where month_pk = {month_pk} and source_url like '%%/Contract%%'"
     context['sources']['contract_rpt'] = conn.execute(sql).fetchone()['source_url']
 
-    sql = f"select source_url from sources where month_pk = {month_pk} and source_url like '%%document/SA%%'"
+    sql = f"select source_url from sources where month_pk = {month_pk} and source_url like '%%/SA%%'"
     context['sources']['sabc_rpt'] = conn.execute(sql).fetchone()['source_url']
 
     return context
