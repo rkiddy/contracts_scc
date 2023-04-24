@@ -2,14 +2,14 @@
 from datetime import datetime as dt
 
 from dotenv import dotenv_values
-from flask import request
+from flask import request, session
 from sqlalchemy import create_engine, inspect
 
 cfg = dotenv_values(".env")
 
-engine = create_engine(f"mysql+pymysql://{cfg['USR']}:{cfg['PWD']}@{cfg['HOST']}/{cfg['DB']}")
-conn = engine.connect()
-inspector = inspect(engine)
+con_engine = create_engine(f"mysql+pymysql://{cfg['USR']}:{cfg['PWD']}@{cfg['HOST']}/{cfg['DB']}")
+conn = con_engine.connect()
+inspector = inspect(con_engine)
 
 cost_buckets = {
     'B0': [0, 1],
@@ -23,6 +23,13 @@ cost_buckets = {
     'B8': [10000000, 100000000],
     'B9': [100000000, 10000000000]
 }
+
+def db_exec(engine, sql):
+    # print(f"sql: {sql}")
+    if sql.strip().startswith('select'):
+        return [dict(r) for r in engine.execute(sql).fetchall()]
+    else:
+        return engine.execute(sql)
 
 
 # cost_labels will be: cost_labels[ <min cost> ] -> bucket key
@@ -47,9 +54,9 @@ def latest_year():
 def money(cents):
     cents = int(cents) / 100
     cents = str(cents)
-    return "$ {:,.2f}".format(float(cents))
+    return "${:,.2f}".format(float(cents))
 
-
+# TODO Get rid of this.
 # rows is a result cursor, columns is a dictionary or key -> column number in rows.
 def fill_in_table(rows, columns):
     """
@@ -108,12 +115,12 @@ def fetch_contracts(month_pk, fetch_key=None, fetch_value=None):
     # <a href="/contracts/scc/bucket/{{ bucket }}">
 
     sql = f"""
-        select c1.pk, c1.owner_name,
+        select c1.pk as contract_pk, c1.owner_name,
             (select id_value from contract_ids where id_type = 'a' and contract_pk = c1.pk limit 1) as ariba_id,
             (select id_value from contract_ids where id_type = 's' and contract_pk = c1.pk limit 1) as sap_id,
             (select id_value from contract_ids where id_type = 'c' and contract_pk = c1.pk limit 1) as contract_id,
             c1.effective_date, c1.expir_date, c1.contract_value,
-            c1.commodity_desc, v1.pk, v1.name
+            c1.commodity_desc, v1.pk as vendor_pk, v1.name as vendor_name
         from contracts c1, budget_unit_joins j1, budget_units u1, vendors v1, months m1
         where c1.pk = j1.contract_pk
             and j1.unit_pk = u1.pk
@@ -136,20 +143,7 @@ def fetch_contracts(month_pk, fetch_key=None, fetch_value=None):
         """
         pass
 
-    columns = {
-        'contract_pk': 0,
-        'owner_name': 1,
-        'ariba_id': 2,
-        'sap_id': 3,
-        'contract_id': 4,
-        'effective_date': 5,
-        'expir_date': 6,
-        'contract_value': 7,
-        'commodity_desc': 8,
-        'vendor_pk': 9,
-        'vendor_name': 10
-    }
-    contracts = fill_in_table(conn.execute(sql).fetchall(), columns)
+    contracts = db_exec(con_engine, sql)
     contracts_by_pk = dict()
     for contract in contracts:
         contracts_by_pk[contract['contract_pk']] = contract
@@ -434,34 +428,19 @@ def build_scc_contract():
     context['current_month'] = month
     context['current_year'] = month.split('-')[0]
 
-    contract_sql = f"""
-    select c1.pk,
-        (select id_value from contract_ids where id_type = 'a' and contract_pk = c1.pk limit 1) as ariba_id,
-        (select id_value from contract_ids where id_type = 's' and contract_pk = c1.pk limit 1) as sap_id,
-        (select id_value from contract_ids where id_type = 'c' and contract_pk = c1.pk limit 1) as contract_id,
-        c1.vendor_pk, v1.name, c1.contract_value,
+    sql = f"""
+    select c1.pk as contract_pk,
+        (select id_value from contract_ids where id_type = 'a' and contract_pk = c1.pk limit 1) as aID,
+        (select id_value from contract_ids where id_type = 's' and contract_pk = c1.pk limit 1) as sID,
+        (select id_value from contract_ids where id_type = 'c' and contract_pk = c1.pk limit 1) as cID,
+        c1.vendor_pk, v1.name as vendor_name, c1.contract_value,
         c1.effective_date, c1.expir_date, c1.commodity_desc
     from contracts c1, vendors v1
     where c1.pk = {contract_pk} and
         c1.vendor_pk = v1.pk and
         c1.month_pk = {month_pk}
     """
-
-    rows = conn.execute(contract_sql).fetchall()
-    cols = {
-        'pk': 0,
-        'cID': 1,
-        'aID': 2,
-        'sID': 3,
-        'vendor_pk': 4,
-        'vendor_name': 5,
-        'contract_value': 6,
-        'effective_date': 7,
-        'expir_date': 8,
-        'description': 9
-    }
-
-    contract = fill_in_table(rows, cols)[0]
+    contract = db_exec(con_engine, sql)[0]
 
     contract['sum_all'] = money(contract['contract_value'])
     contract['sum_year'] = money(year_value_for_contract(contract))
@@ -478,8 +457,8 @@ def build_scc_contract():
     agencies = fill_in_table(rows, {'contract_pk': 0, 'agency_pk': 1, 'agency_name': 2})
 
     for agency in agencies:
-        if contract['pk'] == agency['contract_pk']:
-            pk = contract['pk']
+        if contract['contract_pk'] == agency['contract_pk']:
+            pk = contract['contract_pk']
             contract['agencies'][pk] = {'pk': pk, 'name': agency['agency_name']}
 
     contract['agencies'] = list(contract['agencies'].values())
@@ -514,5 +493,112 @@ def build_scc_contract():
         contract['supporting_docs'] = docs
 
     context['contract'] = contract
+
+    return context
+
+
+def collapse_values(lines: list) -> list:
+    rs = list()
+    cols = ['start', 'stop', 'efd', 'exd', 'value', 'vendor']
+    for line in lines:
+        # print(f"line: {line}")
+        parts = line.split(' ')
+        month = parts[0]
+        value = parts[-1]
+        efd = parts[-3]
+        exd = parts[-2]
+        vendor = ' '.join(parts[1:-3])
+        if len(rs) == 0:
+            rs.append(dict(zip(cols, [month, month, efd, exd, value, vendor])))
+        else:
+            if value != rs[-1]['value']:
+                rs.append(dict(zip(cols, [month, month, efd, exd, value, vendor])))
+            else:
+                if month < rs[-1]['start']:
+                    rs[-1]['start'] = month
+                if month > rs[-1]['stop']:
+                    rs[-1]['stop'] = month
+
+    next_result = list()
+    for r in rs:
+        key = f"{r['start']} to {r['stop']} - {r['vendor']} - {r['efd']} - {r['exd']} - {money(r['value'])}"
+        next_result.append(key)
+
+    return next_result
+
+
+ctypes = {
+    'a': 'ariba', 's': 'sap', 'c': 'contract'
+}
+
+def price_mods():
+    context = dict()
+
+    sql = "select * from contract_ids"
+    rows = db_exec(con_engine, sql)
+
+    contract_pks = dict()
+    ids = dict()
+
+    for row in rows:
+        cpk = row['contract_pk']
+        if cpk not in contract_pks:
+            contract_pks[cpk] = list()
+        contract_pks[cpk].append(f"{ctypes[row['id_type']]}: {row['id_value']}")
+
+    # now I have the id sets for each contract pk.
+
+    for cpk in contract_pks:
+        contract_pks[cpk] = sorted(contract_pks[cpk])
+        id_set = ' - '.join(contract_pks[cpk])
+        if id_set not in ids:
+            ids[id_set] = list()
+        ids[id_set].append(cpk)
+
+    # now I have the id sets, and which contract pks are attached to them.
+
+    contracts = dict()
+
+    for id_set in ids:
+        contract_infos = list()
+        contract_values = list()
+        for pk in ids[id_set]:
+            sql = f"""
+                select c1.vendor_name as vn, c1.effective_date as efd, c1.expir_date as exd, c1.contract_value as cv, m1.month as m
+                from contracts c1, months m1
+                where c1.pk = {pk} and c1.month_pk = m1.pk order by c1.pk
+            """
+            contract = db_exec(con_engine, sql)[0]
+            contract_infos.append(f"{contract['m']} {contract['vn']} {contract['efd']} {contract['exd']} {contract['cv']}")
+            contract_values.append(contract['cv'])
+
+        track_contract = False
+
+        if len(set(contract_values)) > 1:
+            track_contract = True
+
+        if len(set(contract_values)) == 2:
+            if contract_values[0] <= 100:
+                track_contract = False
+
+        if track_contract:
+
+            next_infos = collapse_values(contract_infos)
+            hi_value = contract_values[-1]
+            lo_value = contract_values[0]
+            if lo_value <= 100:
+                lo_value = contract_values[1]
+
+            diff = hi_value - lo_value
+            pct = int((hi_value / lo_value) * 100) - 100
+
+            contracts[id_set] = dict()
+            contracts[id_set]['values'] = next_infos
+            contracts[id_set]['start'] = next_infos[0][:7]
+            contracts[id_set]['end'] = next_infos[-1][11:18]
+            contracts[id_set]['diff'] = money(diff)
+            contracts[id_set]['pct'] = pct
+
+    context['contracts'] = contracts
 
     return context

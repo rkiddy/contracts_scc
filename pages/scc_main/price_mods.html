@@ -1,0 +1,57 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2//EN">
+<html>
+<head>
+    <title>Santa Clara County Active Contracts</title>
+    {% include "styles.html" %}
+        {% include "datatable.html" %}
+    <script>
+        $(document).ready(function () {
+            $('#contracts').DataTable(
+            {
+                    "columns": [
+                        {"name": "Contract Ids", "orderable": false},
+                        {"name": "Start", "orderable": true},
+                        {"name": "End", "orderable": true},
+                        {"name": "Contract Contract Values", "orderable": false},
+                        {"name": "Diff", "orderable": true},
+                        {"name": "Pct Inc", "orderable": true}
+                    ]
+                }
+            );
+        });
+    </script>
+</head>
+<body>
+<div style="padding: 25px 25px 25px 25px;">
+    <table id="contracts" class="table table-striped">
+        <thead>
+        <tr>
+            <th>Contract Ids</th>
+            <th>Start</th>
+            <th>End</th>
+            <th>Contract Values</th>
+            <th>Diff</th>
+            <th>Pct Inc</th>
+        </tr>
+        </thead>
+        {% for id_set in contracts %}
+        <tr>
+            <td>{{ id_set }}</td>
+            <td>{{ contracts[id_set]['start']}}</td>
+            <td>{{ contracts[id_set]['end']}}</td>
+            <td>
+                <table>
+                    {% for con_info in contracts[id_set]['values'] %}
+                    <tr>
+                        <td>{{ con_info }}</td>
+                    </tr>
+                    {% endfor %}
+                </table>
+            </td>
+            <td>{{ contracts[id_set]['diff'] }}</td>
+            <td>{{ contracts[id_set]['pct'] }}</td>
+        </tr>
+        {% endfor %}
+    </table>
+</div>
+</body></html>

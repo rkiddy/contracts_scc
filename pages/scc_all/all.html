@@ -43,6 +43,8 @@
         {% endif %}
     </h2>
     {% endif %}
+    <p><a href="/contracts/scc/as_html">Show Table Listing</a> - <a href="/contracts/scc/as_text">Show Text Listing</a></p>
+    {% if show_as == 'html' %}
     <table id="contracts" class="table table-striped">
         <thead>
             <tr style="white-space: nowrap;">
@@ -97,6 +99,19 @@
         {% endfor %}
         </tbody>
     </table>
+    {% endif %}
+    {% if show_as == 'text' %}
+    <pre>
+    {% for contract in contracts %}
+            vendor_name: {{ contract.vendor_name }}
+    contract start date: {{ contract.effective_date }}
+      contract end date: {{ contract.expir_date }}
+            contract id: {% if contract['contract_id'] %}cID: {{ contract['contract_id'] }} - {% endif %}{% if contract['ariba_id'] %} aID: {{ contract['ariba_id'] }} - {% endif %}{% if contract['sap_id'] %}sID: {{ contract['sap_id'] }} - {% endif %}
+         commodity_desc: {{ contract.commodity_desc }}
+
+    {% endfor %}
+    </pre>
+    {% endif %}
     {% include "footer.html" %}
 </div>
 </body>

@@ -27,6 +27,30 @@ def contracts_main():
 def contracts_all():
     main = env.get_template('scc_all/all.html')
     context = data.all_contracts()
+    context['show_as'] = 'html'
+    return main.render(**context)
+
+
+@contracts_scc.route(f"/{cfg['WWW']}scc/as_html")
+def contracts_as_html():
+    main = env.get_template('scc_all/all.html')
+    context = data.all_contracts()
+    context['show_as'] = 'html'
+    return main.render(**context)
+
+
+@contracts_scc.route(f"/{cfg['WWW']}scc/as_text")
+def contracts_as_text():
+    main = env.get_template('scc_all/all.html')
+    context = data.all_contracts()
+    context['show_as'] = 'text'
+    return main.render(**context)
+
+
+@contracts_scc.route(f"/{cfg['WWW']}scc/pmods")
+def contracts_price_mods():
+    main = env.get_template('scc_main/price_mods.html')
+    context = data.price_mods()
     return main.render(**context)
 
 
