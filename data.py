@@ -2,7 +2,7 @@
 from datetime import datetime as dt
 
 from dotenv import dotenv_values
-from flask import request, session
+from flask import request
 from sqlalchemy import create_engine, inspect
 
 cfg = dotenv_values(".env")
@@ -23,6 +23,7 @@ cost_buckets = {
     'B8': [10000000, 100000000],
     'B9': [100000000, 10000000000]
 }
+
 
 def db_exec(engine, sql):
     # print(f"sql: {sql}")
@@ -55,6 +56,7 @@ def money(cents):
     cents = int(cents) / 100
     cents = str(cents)
     return "${:,.2f}".format(float(cents))
+
 
 # TODO Get rid of this.
 # rows is a result cursor, columns is a dictionary or key -> column number in rows.
