@@ -5,10 +5,13 @@ from dotenv import dotenv_values
 from flask import Flask
 from jinja2 import Environment, PackageLoader
 
+import data
+import imports
+
 cfg = dotenv_values(".env")
 
 sys.path.append(f"{cfg['APP_HOME']}")
-import data
+
 
 contracts_scc = Flask(__name__)
 application = contracts_scc
@@ -96,5 +99,26 @@ def contracts_types(param):
     return contract.render(**context)
 
 
+@contracts_scc.route(f"/{cfg['WWW']}scc/imports")
+def contracts_imports():
+    contract = env.get_template('imports.html')
+    context = imports.imports_main()
+    return contract.render(**context)
+
+
+@contracts_scc.route(f"/{cfg['WWW']}scc/import_scan")
+def contracts_import_scan():
+    contract = env.get_template('imports.html')
+    context = imports.import_scan()
+    return contract.render(**context)
+
+
+@contracts_scc.route(f"/{cfg['WWW']}scc/import_save")
+def contracts_import_save():
+    contract = env.get_template('imports.html')
+    context = imports.import_save()
+    return contract.render(**context)
+
+
 if __name__ == '__main__':
-    contracts_scc.run()
+    contracts_scc.run(port=8080)

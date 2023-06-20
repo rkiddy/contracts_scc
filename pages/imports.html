@@ -1,0 +1,26 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2//EN">
+<html>
+<head>
+    <title>Santa Clara County Active Contracts - Imports</title>
+    {% include "styles.html" %}
+</head>
+<body>
+<div style="padding: 25px 25px 25px 25px;">
+<table class="table table-striped">
+    {% for month in months %}
+    <tr>
+        <td rowspan="2">{{ month }}</td>
+        <td>Contracts</td>
+        <td><a href="{{ months_data[month]['Contracts']['url'] }}">{{ months_data[month]['Contracts']['url_s'] }}</a></td>
+        <td>*</td>
+    </tr>
+    <tr>
+        <td>SABC</td>
+        <td><a href="{{ months_data[month]['SABC']['url'] }}">{{ months_data[month]['SABC']['url_s'] }}</a></td>
+        <td>*</td>
+    </tr>
+    {% endfor %}
+</table>
+</div>
+</body>
+</html>
