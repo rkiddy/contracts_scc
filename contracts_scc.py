@@ -15,7 +15,7 @@ sys.path.append(f"{cfg['APP_HOME']}")
 
 contracts_scc = Flask(__name__)
 application = contracts_scc
-env = Environment(loader=PackageLoader('contracts_scc', 'pages'))
+env = Environment(loader=PackageLoader('contracts_scc'))
 
 
 @contracts_scc.route(f"/{cfg['WWW']}scc")
