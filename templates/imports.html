@@ -6,6 +6,14 @@
 </head>
 <body>
 <div style="padding: 25px 25px 25px 25px;">
+    <p><a href="/contracts/scc/integrity">Integrity Check</a></p>
+    {% if messages %}
+    <ul>
+        {% for message in messages %}
+        <li>{{ message }}</li>
+        {% endfor %}
+    </ul>
+    {% endif %}
 <table class="table table-striped">
     {% for month in months %}
     <tr>

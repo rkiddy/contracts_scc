@@ -106,6 +106,13 @@ def contracts_imports():
     return contract.render(**context)
 
 
+@contracts_scc.route(f"/{cfg['WWW']}scc/integrity")
+def contracts_integrity():
+    contract = env.get_template('imports.html')
+    context = imports.integrity_check()
+    return contract.render(**context)
+
+
 @contracts_scc.route(f"/{cfg['WWW']}scc/import_scan")
 def contracts_import_scan():
     contract = env.get_template('imports.html')

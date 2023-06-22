@@ -87,7 +87,7 @@ def fix_money(amount):
     amount = amount.replace('$', '')
     if re.match(r'\.\d\d$', amount):
         raise Exception("Money amount should end with a dot and cents.")
-    amount = amount.replace(' ', '').replace(',', '').replace('.','')
+    amount = amount.replace(' ', '').replace(',', '').replace('.', '')
     return amount
 
 
@@ -401,3 +401,158 @@ def import_save():
         db_exec(conn, sql)
 
     return context
+
+
+def integrity_check():
+    context = dict()
+    msgs = list()
+    msgs.extend(integrity_check_vendor_pks())
+    msgs.extend(integrity_check_contract_ids())
+    msgs.extend(integrity_check_changed_vendor_names())
+    msgs.extend(integrity_check_changed_descriptions())
+    context['messages'] = msgs
+    return context
+
+
+def integrity_check_vendor_pks():
+    """
+    The vendor_pk in a contract should always go to the same vendor. A vendor
+    may have multiple names and, if this occurs, there should be one name in the
+    contracts table and the others should appear in the vendor_infos table with
+    the 'Alternate Name' key. These alternate names will be checked on import.
+    TODO Make the import check the alternate names in the vendor_infos table.
+    If multiple vendor names occur, all but one should be added to the list of
+    alternate names for the vendor and then the contracts table vendor_name can be
+    corrected.
+    """
+    msgs = list()
+
+    sql = "select vendor_pk as pk, vendor_name as name from contracts"
+    vendors = dict()
+    for row in db_exec(conn, sql):
+        pk = row['pk']
+        name = row['name']
+        if pk not in vendors:
+            vendors[pk] = set()
+        vendors[pk].add(name)
+
+    pk_counts = dict()
+    for pk in vendors:
+        nmlen = len(vendors[pk])
+        if nmlen not in pk_counts:
+            pk_counts[nmlen] = 0
+        pk_counts[nmlen] += 1
+        if nmlen > 1:
+            print(f"pk: {pk} -> {vendors[pk]}")
+    for nmlen in pk_counts:
+        msgs.append(f"{nmlen} -> {pk_counts[nmlen]}")
+
+    if len(pk_counts) == 1:
+        msgs.append("vendor pk result GOOD")
+    else:
+        msgs.append("vendor pk result NOT good.")
+
+    return msgs
+
+
+def fetch_contract_ids(key, sql):
+    ids = dict()
+    for row in db_exec(conn, sql):
+        parts = list()
+        if row['ariba_id'] is None:
+            parts.append('NULL')
+        else:
+            parts.append(row['ariba_id'])
+        if row['contract_id'] is None:
+            parts.append('NULL')
+        else:
+            parts.append(row['contract_id'])
+        if row['sap_id'] is None:
+            parts.append('NULL')
+        else:
+            parts.append(row['sap_id'])
+        ids_key = '|'.join(parts)
+        if ids_key not in ids:
+            ids[ids_key] = list()
+        ids[ids_key].append(str(row[key]))
+    return ids
+
+
+def integrity_check_contract_ids():
+    msgs = list()
+    checked = 0
+    bad = 0
+
+    sql = f"select pk, ariba_id, contract_id, sap_id from contracts"
+    ids = fetch_contract_ids('pk', sql)
+
+    for ids_key in ids:
+        checked += 1
+        pks = ids[ids_key]
+        uniq_pks = set(ids[ids_key])
+        if len(pks) != len(uniq_pks):
+            msgs.append(f"BAD contract ids: {ids_key} -> {pks}")
+            bad += 1
+    msgs.append(f"checked contract ids # {checked}, found bad # {bad}")
+
+    if bad == 0:
+        msgs.append(f"contract ids result GOOD")
+    else:
+        msgs.append(f"contract ids result NOT good")
+
+    return msgs
+
+
+def integrity_check_changed_vendor_names():
+    """
+    If multiple vendor names occur, then the latest name should be determined.
+    The other names should be added to the list of alternate names for the vendor.
+    """
+    msgs = list()
+
+    checked = 0
+    bad = 0
+
+    sql = f"""
+    select v1.name, c1.ariba_id, c1.contract_id, c1.sap_id
+    from contracts c1 left outer join vendors v1 on c1.vendor_pk = v1.pk
+    """
+
+    ids = fetch_contract_ids('name', sql)
+    for ids_key in ids:
+        checked += 1
+        if len(set(ids[ids_key])) > 1:
+            msgs.append(f"CHANGED contract ids to vendor name: {ids_key} -> {ids[ids_key]}")
+            bad += 1
+
+    if bad == 0:
+        msgs.append(f"checked contract ids matching result to names # {checked}, all GOOD")
+    else:
+        msgs.append(f"checked contract ids matching result to names # {checked}, found CHANGED # {bad}")
+
+    return msgs
+
+
+def integrity_check_changed_descriptions():
+    """
+    Not sure what to do about these changes.
+    # TODO Figure out what a changed description means. Is it a real change?
+    """
+    msgs = list()
+    checked = 0
+    bad = 0
+
+    sql = f"select commodity_desc, ariba_id, contract_id, sap_id from contracts"
+    ids = fetch_contract_ids('commodity_desc', sql)
+    for ids_key in ids:
+        checked += 1
+        if len(set(ids[ids_key])) > 1:
+            msgs.append(f"CHANGED contract ids to description: {ids_key} -> {ids[ids_key]}")
+            bad += 1
+
+    if bad == 0:
+        msgs.append(f"checked contract ids matching result to descriptions # {checked}, all GOOD")
+    else:
+        msgs.append(f"checked contract ids matching result to descriptions # {checked}, found CHANGED # {bad}")
+
+    return msgs
