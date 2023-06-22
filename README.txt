@@ -48,3 +48,21 @@ The Santa Clara County Civil Grand Jury issued a
 on December 15, 2022 that lays out many of my issues with the Procurement
 Department and uses its access to internal information to lay out many more of the
 issues and problems with the system run by the Department.
+
+This script could be used to regenerate the contract_ids table, if this is necessary:
+
+#!/bin/bash
+
+echo "delete from contract_ids;" | mysql ca_scc_contracts
+
+( echo "select pk, 'c', contract_id from contracts where contract_id is not NULL;" | \
+    mysql --skip-column-names ca_scc_contracts ;
+  echo "select pk, 'a', ariba_id from contracts where ariba_id is not NULL;" | \
+    mysql --skip-column-names ca_scc_contracts ;
+  echo "select pk, 's', sap_id from contracts where sap_id is not NULL;" | \
+    mysql --skip-column-names ca_scc_contracts ) | \
+sort -n | \
+awk '{print "insert into contract_ids values ("NR", "$1", '\''"$2"'\'', '\''"$3"'\'');"}' | \
+  mysql ca_scc_contracts
+
+
