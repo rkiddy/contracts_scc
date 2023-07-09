@@ -1,0 +1,70 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2//EN">
+<html>
+<head>
+    <title>Santa Clara County Active Contracts</title>
+    {% include "styles.html" %}
+</head>
+<body>
+<div style="padding: 25px 25px 25px 25px;">
+    <p><a href="/contracts/scc/">Home</a></p>
+    <p>
+        These are all of the SCC contracts for which we have supporting documents.
+        One can see the identifying information on the two PDF files found on the
+        Procurement Department's Active Contracts page, but the only way to get
+        more information about any contract is to file a California Public Records
+        Act request with the Department. One can do this by sending an email to
+        cpra@prc.sccgov.org. I have been successful in my requests by including the
+        Vendor Name, Contract Value, Effective and Expiry Dates, and whichever of
+        the Ariba ID, the Contract ID, and the SAP ID are defined for the contract.
+    </p>
+    <p>
+        The "Months" column below lists the first and last time that the contract
+        appeared in the reports exported from the Procurement Department. This
+        page, unlike most others found here, includes contracts that are no longer
+        current and which will not be findable in the Procurement Department
+        reports.
+    </p>
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>Ids</th>
+                <th>Vendor</th>
+                <th style = "white-space: nowrap;">Effective<br/>Expiry Date</th>
+                <th>Months</th>
+                <th>Amount</th>
+                <th>Agencies</th>
+                <th>Description</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for contract in contracts %}
+            <tr>
+                <td rowspan="2" style = "white-space: nowrap;">A: {{ contract.ariba_id }}<br/>C: {{ contract.contract_id }}<br/>S: {{ contract.sap_id }}</td>
+                <td>{{ contract.vendor_name }}</td>
+                <td>{{ contract.effective_date }}<br/>{{ contract.expir_date }}</td>
+                <td>{{ contract.min_month }}<br/>{{ contract.max_month }}</td>
+                <td>{{ contract.contract_value }}</td>
+                <td>
+                  <ul>
+                  {% for agency in contract.agencies %}
+                      <li><a href="/contracts/scc/agency/{{ agency.pk }}">{{ agency.name }}</a></li>
+                  {% endfor %}
+                  </ul>
+                </td>
+                <td>{{ contract.commodity_desc }}</td>
+                <td></td>
+            </tr>
+            <tr>
+                <td colspan="5">
+                    <ul>
+                        {% for urld in contract.urls %}
+                        <li><a href="{{ urld.url }}">{{ urld.label }}</a></li>
+                        {% endfor %}
+                    </ul>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+</body></html>

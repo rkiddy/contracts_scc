@@ -256,7 +256,7 @@ def import_scan():
     #     7: "Contract Value (PO Value)"
     #     8: Commodity Description
     #
-    file = "/tmp/import/SA BC Report for Month of April 2023.tsv"
+    file = "/tmp/import/SA BC Report for Month of May 2023.tsv"
     with open(file, 'r') as sabc_file:
 
         for line in sabc_file:
@@ -279,7 +279,7 @@ def import_scan():
     #     8: Commodity Description
     #
     bad_lines = list()
-    file = "/tmp/import/Contracts Report for Month of April 2023.tsv"
+    file = "/tmp/import/Contracts Report for Month of May 2023.tsv"
     with open(file, 'r') as contracts_file:
 
         for line in contracts_file:
@@ -316,7 +316,7 @@ def import_save():
     max_con_pk = fetch_max_pk('contracts')
     max_cid_pk = fetch_max_pk('contract_ids')
 
-    source_pks = fetch_source_pks(41)
+    source_pks = fetch_source_pks(42)
 
     fetch_units()
 
@@ -384,7 +384,7 @@ def import_save():
         add_to_sql(c, v, 'commodity_desc', row['descrip'])
 
         c.append('month_pk')
-        v.append(str(41))
+        v.append(str(42))
 
         c.append('source_pk')
         v.append(str(source_pks[row['doc_type']]))
@@ -410,6 +410,8 @@ def integrity_check():
     msgs.extend(integrity_check_contract_ids())
     msgs.extend(integrity_check_changed_vendor_names())
     msgs.extend(integrity_check_changed_descriptions())
+    msgs.extend(integrity_check_contract_id_types_not_crossed())
+    msgs.extend(integrity_check_contract_ids_not_duplicated())
     context['messages'] = msgs
     return context
 
@@ -554,5 +556,78 @@ def integrity_check_changed_descriptions():
         msgs.append(f"checked contract ids matching result to descriptions # {checked}, all GOOD")
     else:
         msgs.append(f"checked contract ids matching result to descriptions # {checked}, found CHANGED # {bad}")
+
+    return msgs
+
+
+def integrity_check_contract_id_types_not_crossed():
+    """
+    A contract should either be from the Contracts source and it will have one or both
+    of an Ariba Id and an SAP id and no Contract Id, or the contract should be from the
+    SA BC file and it will have a Contract ID and no Ariba Id or SAP Id. If it has a
+    Contract Id and either a Ariba Id or SAP Id, something is wrong.
+    """
+    msgs = list()
+
+    sql = """
+        select * from contracts
+        where contract_id is not NULL and
+            (ariba_id is not NULL or sap_id is not NULL)
+        """
+    rows = db_exec(conn, sql)
+    if rows is None or len(rows) == 0:
+        msgs.append(f"contract id types not crossing, result GOOD")
+    else:
+        for row in rows:
+            msgs.append(f"crossed id type contract: {row}")
+        msgs.append(f"contract id types CROSSING, result bad")
+
+    return msgs
+
+
+def integrity_check_contract_ids_not_duplicated():
+    """
+    TODO If I use the SQL to check whether the one month_pk equals the other month_pk, the query takes too long. Why?
+    """
+    msgs = list()
+
+    # TODO add "c1.month_pk = c2.month_pk" to the end of these.
+
+    duped_sap_ids = list()
+
+    sql = """
+        select c1.pk as pk1, c2.pk as pk2, c1.month_pk as month_pk1, c2.month_pk as month_pk2,
+            c1.sap_id, c1.ariba_id as ariba_id1, c2.ariba_id as ariba_id2
+        from contracts c1, contracts c2
+        where c1.sap_id = c2.sap_id and
+            c1.ariba_id != c2.ariba_id
+        """
+    rows = db_exec(conn, sql)
+    for row in rows:
+        if row['month_pk1'] == row['month_pk2'] and row['pk1'] < row['pk2']:
+            duped_sap_ids.append(row)
+
+    duped_ariba_ids = list()
+
+    sql = """
+        select c1.pk as pk1, c2.pk as pk2, c1.month_pk as month_pk1, c2.month_pk as month_pk2,
+            c1.ariba_id, c1.sap_id as sap_id1, c2.sap_id as sap_id2
+        from contracts c1, contracts c2
+        where c1.ariba_id = c2.ariba_id and
+            c1.sap_id != c2.sap_id
+        """
+    rows = db_exec(conn, sql)
+    for row in rows:
+        if row['month_pk1'] == row['month_pk2'] and row['pk1'] < row['pk2']:
+            duped_ariba_ids.append(row)
+
+    if len(duped_sap_ids) == 0 and len(duped_ariba_ids) == 0:
+        msgs.append(f"contract ids not duplicated, result GOOD")
+    else:
+        for row in duped_sap_ids:
+            msgs.append(f"bad SAP ID: {row}")
+        for row in duped_ariba_ids:
+            msgs.append(f"bad ARIBA ID: {row}")
+        msgs.append(f"contract ids might be DUPLICATED, result bad")
 
     return msgs

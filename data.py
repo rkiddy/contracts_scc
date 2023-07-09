@@ -53,9 +53,12 @@ def latest_year():
 
 
 def money(cents):
-    cents = int(cents) / 100
-    cents = str(cents)
-    return "${:,.2f}".format(float(cents))
+    if cents is None:
+        return '$0.00'
+    else:
+        cents = int(cents) / 100
+        cents = str(cents)
+        return "${:,.2f}".format(float(cents))
 
 
 # TODO Get rid of this.
@@ -110,7 +113,8 @@ def year_value_for_contract(contract, latest_yr=latest_year()):
 
 def fetch_contracts(month_pk, fetch_key=None, fetch_value=None):
 
-    # also:
+    # from:
+    # <a href="/contracts/scc/
     # <a href="/contracts/scc/vendor/{{ contract.vendor_pk }}"
     # <a href="/contracts/scc/agency/{{ agency.pk }}">
     # <a href="/contracts/scc/desc/{{ contract.commodity_desc }}">
@@ -178,12 +182,11 @@ def fetch_contracts(month_pk, fetch_key=None, fetch_value=None):
 
     contracts = list(contracts_by_pk.values())
 
-    sql = "select ariba_id, contract_id, sap_id, pk from supporting_docs"
+    sql = "select ariba_id, contract_id, sap_id from supporting_docs"
     columns = {
         'ariba_id': 0,
         'contract_id': 1,
-        'sap_id': 2,
-        'pk': 3
+        'sap_id': 2
     }
     docs = dict()
     for doc in fill_in_table(conn.execute(sql).fetchall(), columns):
@@ -422,79 +425,175 @@ def build_type_data(type_info):
 
 def build_scc_contract():
 
-    contract_pk = request.path.split('/')[-1]
+    parts = request.path.split('/')[-1].split('-')
 
     context = dict()
+
+    context['qual'] = f"{parts[0]}-{parts[1]}-{parts[2]}"
 
     [month_pk, month] = latest_month()
     context['current_month'] = month
     context['current_year'] = month.split('-')[0]
 
-    sql = f"""
-    select c1.pk as contract_pk,
-        (select id_value from contract_ids where id_type = 'a' and contract_pk = c1.pk limit 1) as aID,
-        (select id_value from contract_ids where id_type = 's' and contract_pk = c1.pk limit 1) as sID,
-        (select id_value from contract_ids where id_type = 'c' and contract_pk = c1.pk limit 1) as cID,
-        c1.vendor_pk, v1.name as vendor_name, c1.contract_value,
-        c1.effective_date, c1.expir_date, c1.commodity_desc
-    from contracts c1, vendors v1
-    where c1.pk = {contract_pk} and
-        c1.vendor_pk = v1.pk and
-        c1.month_pk = {month_pk}
-    """
-    contract = db_exec(con_engine, sql)[0]
+    if len(parts) == 4:
+        display_all = True
+    else:
+        display_all = False
 
-    contract['sum_all'] = money(contract['contract_value'])
-    contract['sum_year'] = money(year_value_for_contract(contract))
-    contract['agencies'] = dict()
+    if parts[0] == 'None':
+        ariba_id_str = "is NULL"
+    else:
+        ariba_id_str = f"= '{parts[0]}'"
 
-    contract_agencies_sql = f"""
-    select c1.pk, b1.pk, b1.unit_name
-    from contracts c1, budget_unit_joins j1, budget_units b1
-    where c1.pk = j1.contract_pk and j1.unit_pk = b1.pk and
-    c1.month_pk = {month_pk}
-    """
+    if parts[1] == 'None':
+        contract_id_str = "is NULL"
+    else:
+        contract_id_str = f"= '{parts[1]}'"
 
-    rows = conn.execute(contract_agencies_sql).fetchall()
-    agencies = fill_in_table(rows, {'contract_pk': 0, 'agency_pk': 1, 'agency_name': 2})
+    if parts[2] == 'None':
+        sap_id_str = "is NULL"
+    else:
+        sap_id_str = f"= '{parts[2]}'"
 
-    for agency in agencies:
-        if contract['contract_pk'] == agency['contract_pk']:
-            pk = contract['contract_pk']
-            contract['agencies'][pk] = {'pk': pk, 'name': agency['agency_name']}
-
-    contract['agencies'] = list(contract['agencies'].values())
-
-    contract_vendor_info_sql = """
-    select key_name, value_str from vendor_infos
-    where vendor_pk = __VENDOR_PK__
-    """
-
-    sql = contract_vendor_info_sql
-    sql = sql.replace('__VENDOR_PK__', str(contract['vendor_pk']))
-
-    rows = conn.execute(sql).fetchall()
-    vendor_infos = fill_in_table(rows, {'key_name': 0, 'value_str': 1})
-
-    if vendor_infos:
-        contract['vendor_infos'] = vendor_infos
+    contracts = list()
 
     sql = f"""
-    select url from supporting_docs
-    where ariba_id = '{contract['aID']}' and
-        contract_id = '{contract['cID']}' and
-        sap_id = '{contract['sID']}'
+        select c1.pk, c1.ariba_id, c1.contract_id, c1.sap_id,
+            c1.vendor_name, c1.vendor_pk,
+            c1.effective_date, c1.expir_date,
+            c1.contract_value, c1.commodity_desc, m1.month
+        from contracts c1, months m1
+        where c1.ariba_id {ariba_id_str} and
+            c1.contract_id {contract_id_str} and
+            c1.sap_id {sap_id_str}
     """
-    sql = sql.replace("= 'None'", 'is NULL')
+    if not display_all:
+        sql = f"{sql} and c1.month_pk = {month_pk} and c1.month_pk = m1.pk"
+    else:
+        sql = f"{sql} and c1.month_pk = m1.pk"
 
-    docs = list()
-    for doc in conn.execute(sql).fetchall():
-        docs.append(doc['url'])
+    sql = f"{sql} order by month desc"
 
-    if len(docs) > 0:
-        contract['supporting_docs'] = docs
+    rows = db_exec(conn, sql)
 
-    context['contract'] = contract
+    vpk = rows[0]['vendor_pk']
+
+    # mark the contract as to type.
+    #
+    if rows[0]['contract_id'] is None:
+        con_type = "SABC"
+    else:
+        con_type = "CON"
+    context['con_type'] = con_type
+
+    for row in rows:
+        next_row = dict(row)
+        next_row['contract_pk'] = row['pk']
+        next_row['contract_value'] = money(row['contract_value'])
+        next_row['aID'] = row['ariba_id']
+        next_row['cID'] = row['contract_id']
+        next_row['sID'] = row['sap_id']
+        contracts.append(next_row)
+
+    pks = list(set([str(r['contract_pk']) for r in contracts]))
+
+    units = dict()
+    # set up units dictionary to use contract pk as key, pointing to name and unit pk.
+    sql = f"""
+        select * from budget_unit_joins j1, budget_units b1
+        where j1.unit_pk = b1.pk and
+            j1.contract_pk in ({','.join(pks)})
+    """
+    for row in db_exec(conn, sql):
+        pk = row['contract_pk']
+        if pk not in units:
+            units[pk] = list()
+        units[pk].append(row)
+
+    for contract in contracts:
+        contract['units'] = units[contract['contract_pk']]
+
+    sql = f"""
+        select url
+        from supporting_docs
+        where ariba_id {ariba_id_str} and
+            contract_id {contract_id_str} and
+            sap_id {sap_id_str}
+    """
+    rows = db_exec(conn, sql)
+    if rows is not None or len(rows) > 0:
+        context['docs'] = rows
+
+    context['contracts'] = contracts
+
+    context['vendor_infos'] = db_exec(conn, f"select * from vendor_infos where vendor_pk = {vpk}")
+    #
+    # sql = f"""
+    # select c1.pk as contract_pk,
+    #     (select id_value from contract_ids where id_type = 'a' and contract_pk = c1.pk limit 1) as aID,
+    #     (select id_value from contract_ids where id_type = 's' and contract_pk = c1.pk limit 1) as sID,
+    #     (select id_value from contract_ids where id_type = 'c' and contract_pk = c1.pk limit 1) as cID,
+    #     c1.vendor_pk, v1.name as vendor_name, c1.contract_value,
+    #     c1.effective_date, c1.expir_date, c1.commodity_desc
+    # from contracts c1, vendors v1
+    # where c1.pk = {contract_pk} and
+    #     c1.vendor_pk = v1.pk and
+    #     c1.month_pk = {month_pk}
+    # """
+    # contract = db_exec(con_engine, sql)[0]
+    contract = dict()
+    #
+    # contract['sum_all'] = money(contract['contract_value'])
+    # contract['sum_year'] = money(year_value_for_contract(contract))
+    # contract['agencies'] = dict()
+    #
+    # contract_agencies_sql = f"""
+    # select c1.pk, b1.pk, b1.unit_name
+    # from contracts c1, budget_unit_joins j1, budget_units b1
+    # where c1.pk = j1.contract_pk and j1.unit_pk = b1.pk and
+    # c1.month_pk = {month_pk}
+    # """
+    #
+    # rows = conn.execute(contract_agencies_sql).fetchall()
+    # agencies = fill_in_table(rows, {'contract_pk': 0, 'agency_pk': 1, 'agency_name': 2})
+    #
+    # for agency in agencies:
+    #     if contract['contract_pk'] == agency['contract_pk']:
+    #         pk = contract['contract_pk']
+    #         contract['agencies'][pk] = {'pk': pk, 'name': agency['agency_name']}
+    #
+    # contract['agencies'] = list(contract['agencies'].values())
+    #
+    # contract_vendor_info_sql = """
+    # select key_name, value_str from vendor_infos
+    # where vendor_pk = __VENDOR_PK__
+    # """
+    #
+    # sql = contract_vendor_info_sql
+    # sql = sql.replace('__VENDOR_PK__', str(contract['vendor_pk']))
+    #
+    # rows = conn.execute(sql).fetchall()
+    # vendor_infos = fill_in_table(rows, {'key_name': 0, 'value_str': 1})
+    #
+    # if vendor_infos:
+    #     contract['vendor_infos'] = vendor_infos
+    #
+    # sql = f"""
+    # select url from supporting_docs
+    # where ariba_id = '{contract['aID']}' and
+    #     contract_id = '{contract['cID']}' and
+    #     sap_id = '{contract['sID']}'
+    # """
+    # sql = sql.replace("= 'None'", 'is NULL')
+    #
+    # docs = list()
+    # for doc in conn.execute(sql).fetchall():
+    #     docs.append(doc['url'])
+    #
+    # if len(docs) > 0:
+    #     contract['supporting_docs'] = docs
+    #
+    # context['contract'] = contract
 
     return context
 
@@ -532,6 +631,7 @@ def collapse_values(lines: list) -> list:
 ctypes = {
     'a': 'ariba', 's': 'sap', 'c': 'contract'
 }
+
 
 def price_mods():
     context = dict()
@@ -602,5 +702,83 @@ def price_mods():
             contracts[id_set]['pct'] = pct
 
     context['contracts'] = contracts
+
+    return context
+
+
+def url_label(url):
+    return url.split('/')[-1]
+
+
+def build_supporting_docs():
+    context = dict()
+
+    sql = "select ariba_id, contract_id, sap_id, url from supporting_docs"
+    rows = db_exec(conn, sql)
+
+    urls = dict()
+    for row in rows:
+        key = f"{row['ariba_id']}|{row['contract_id']}|{row['sap_id']}"
+        if key not in urls:
+            urls[key] = list()
+        urls[key].append(row['url'])
+
+    found = dict()
+
+    for key in urls:
+        parts = key.split('|')
+
+        if parts[0] == 'None':
+            ariba_id_str = "is NULL"
+        else:
+            ariba_id_str = f"= '{parts[0]}'"
+
+        if parts[1] == 'None':
+            contract_id_str = "is NULL"
+        else:
+            contract_id_str = f"= '{parts[1]}'"
+
+        if parts[2] == 'None':
+            sap_id_str = "is NULL"
+        else:
+            sap_id_str = f"= '{parts[2]}'"
+
+        qualifier = f"c1.ariba_id {ariba_id_str} and c1.contract_id {contract_id_str} and c1.sap_id {sap_id_str}"
+
+        sql = f"""
+            select c1.pk as c_pk, c1.ariba_id, c1.sap_id, c1.contract_id,
+                c1.contract_type, c1.vendor_name, c1.vendor_pk,
+                c1.effective_date, c1.expir_date, c1.contract_value, c1.commodity_desc, m1.month
+            from contracts c1, months m1
+            where c1.month_pk = m1.pk and {qualifier} order by m1.month
+            """
+        contracts = db_exec(conn, sql)
+
+        found[key] = dict(contracts[-1])
+        found[key]['contract_value'] = money(found[key]['contract_value'])
+        found[key]['min_month'] = contracts[0]['month']
+        found[key]['max_month'] = contracts[-1]['month']
+
+        found[key]['urls'] = list()
+
+        for url in urls[key]:
+            found[key]['urls'].append({'url': url, 'label': url_label(url)})
+
+        con_pks = ', '.join(list(set([str(r['c_pk']) for r in contracts])))
+
+        unit_pks = dict()
+        sql = f"""
+            select * from budget_unit_joins j1, budget_units u1
+            where j1.contract_pk in ({con_pks})
+        """
+        for row in db_exec(conn, sql):
+            unit_pks[row['unit_pk']] = row['unit_name']
+
+        found[key]['agencies'] = list()
+
+        for pk in unit_pks:
+            found[key]['agencies'].append({'pk': pk, 'name': unit_pks[pk]})
+
+    context['contracts'] = list(found.values())
 
     return context

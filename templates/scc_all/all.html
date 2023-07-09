@@ -88,9 +88,9 @@
                 <td><a href="/contracts/scc/desc/{{ contract.commodity_desc }}">{{ contract.commodity_desc }}</a></td>
                 <td>
                     {% if contract.docs %}
-                    <a href="/contracts/scc/contract/{{ contract.contract_pk }}">{{ contract.docs }}</a>
+                    <a href="/contracts/scc/contract/{{ contract['ariba_id'] }}-{{ contract['contract_id'] }}-{{ contract['sap_id'] }}">{{ contract.docs }}</a>
                     {% else %}
-                    <a href="/contracts/scc/contract/{{ contract.contract_pk }}">---</a>
+                    <a href="/contracts/scc/contract/{{ contract['ariba_id'] }}-{{ contract['contract_id'] }}-{{ contract['sap_id'] }}">---</a>
                     {% endif %}
                 </td>
             </tr>

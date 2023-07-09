@@ -8,51 +8,62 @@
 <div style="padding: 25px 25px 25px 25px;">
     {% include "top_nav.html" %}
     {% include "curr_month.html" %}
+    <p>
+        <a href="/contracts/scc/contract/{{ qual }}-ALL">Show Historical</a>
+    </p>
     <table class="table table-striped">
-        <tr style="white-space: nowrap;">
-            <th>Contract ID</th>
-            <th>Vendor</th>
-            <th>{{ current_year }} Cost</th>
-            <th>Total Cost</th>
-            <th>Effective Date</th>
-            <th>Expiry Date</th>
-            <th>Agencies</th>
-            <th>Description</th>
-        </tr>
-        <tr>
-            <td style = "white-space: nowrap;">{% include "contract/contract_id.html" %}</td>
-            <td>{{ contract.vendor_name }}</td>
-            <td style = "white-space: nowrap;">{{ contract.sum_year }}</td>
-            <td style = "white-space: nowrap;">{{ contract.sum_all }}</td>
-            <td>{{ contract.effective_date }}</td>
-            <td>{{ contract.expir_date }}</td>
-            <td>
-                <ul>
-                {% for agency in contract.agencies %}
-                    <li>{{ agency.name }}</li>
-                {% endfor %}
-                </ul>
-            </td>
-            <td>{{ contract.description }}</td>
-        </tr>
+        <thead>
+            <tr>
+                <th>Month</th>
+                <th>Contract ID</th>
+                <th>Vendor</th>
+                <th>Total Cost</th>
+                <th>Effective<br/>Expiry Date</th>
+                <th>Unit(s)</th>
+                <th>Description</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for contract in contracts %}
+            <tr>
+                <td>{{ contract.month }}</td>
+                <td style = "white-space: nowrap;">{% include "contract/contract_id.html" %}</td>
+                <td>{{ contract.vendor_name }}</td>
+                <td style = "white-space: nowrap;">{{ contract.contract_value }}</td>
+                <td style = "white-space: nowrap;">{{ contract.effective_date }}<br/>{{ contract.expir_date }}</td>
+                <td>
+                    {% if con_type == 'SABC' %}
+                    <ul>
+                        {% for unit in contract.units %}
+                            <li>{{ unit.unit_name }} - {{ unit.unit_num }}</li>
+                        {% endfor %}
+                    </ul>
+                    {% else %}
+                    {{ contract.units[0].unit_name }} - {{ contract.units[0].unit_num }}
+                    {% endif %}
+                </td>
+                <td>{{ contract.commodity_desc }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
     </table>
-    {% if contract.supporting_docs %}
+    {% if docs %}
     <table class="table table-striped">
         <caption>Supporting Documents</caption>
-        {% for doc in contract.supporting_docs %}
+        {% for doc in docs %}
         <tr>
-            <td><a href="{{ doc }}" target = "blank">{{ doc }}</a></td>
+            <td><a href="{{ doc.url }}" target = "blank">{{ doc.url }}</a></td>
         </tr>
         {% endfor %}
     </table>
     {% endif %}
-    {% if contract.vendor_infos %}
+    {% if vendor_infos %}
     <table class="table table-striped">
         <caption>Vendor Info</caption>
-        {% for info in contract.vendor_infos %}
+        {% for vendor_info in vendor_infos %}
         <tr>
-            <td>{{ info.key_name }}</td>
-            <td>{{ info.value_str }}</td>
+            <td>{{ vendor_info.key_name }}</td>
+            <td>{{ vendor_info.value_str }}</td>
         </tr>
         {% endfor %}
     </table>

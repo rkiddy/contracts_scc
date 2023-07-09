@@ -126,9 +126,63 @@ total value      $ 2,000,000.00    covers 2020-04-01 to 2022-03-31
      271      NULL          NULL         NON_NULL</pre>
     </p>
     <p>
-    What do these ID numbers really mean? I am not curious about this. I have observed
-    that a "contract_id, ariba_id, sap_id" triplet uniquely identifes a contract and
-    that is enough.
+    I have recently noticed (July 2023) that there are two types of id sets. In one case, the
+    contracts are listed in a report with a title like 'Contracts Report for Month of April 2023.pdf'.
+    In this report, each contract has an Ariba Id, an SAP Id, or both and the set of these two is unique.
+    Also, A single contract can point to more than one agency. For example, a contract with an Ariba Id
+    number 'CW2239242' with 'VICTORY SUPPLY' relates to:
+    <ul>
+        <li>Dept. of Correction - 240</li>
+        <li>Sheriff's Office - 230</li>
+        <li>Sheriff's Court/Custody Oper. - 231</li>
+    </ul>
+    In the other case, the contracts are listed in a report with a title like 'SA BC Report for Month of
+    April 2023.pdf'. In this report, each contract has a Contract Id and only one agency is connected to
+    each row. But the Contract Id may appear on more than once. But the Contract Id, Agency pair is
+    unique.
+    </p>
+    <p>
+    Therefore, in order to track a contract from month to month, one must look for whichever pair of
+    values is appropriate. Of course, a contract can be amended and one of its Id numbers can change.
+    It is not clear how this can be tracked. One could combine the contract rows but the SA/BC report
+    shows how much money goes to each agency and the Contracts report does not, and it would not be
+    good to lose that detail.
+    </p>
+    <p>
+    An example is:
+    <pre>
+        Agency: Controller-Treasurer Dept - 110
+        Contract Id: 4300018669
+        Vendor: AYA HEALTHCARE INC
+        Start: 5/15/2020
+        End: 6/30/2023
+        Amount: $ 95,885,456.93
+        Dewscription: Consulting Services
+
+        Agency: Facilities and Fleet Department - 263
+        Contract Id: 4300018669
+        Vendor: AYA HEALTHCARE INC
+        Start: 5/15/2020
+        End: 6/30/2023
+        Amount: $ 5,000,000.00
+        Dewscription: Consulting Services
+
+        Agency: Health & Hospital Systems - 921
+        Contract Id: 4300018669
+        Vendor: AYA HEALTHCARE INC
+        Start: 5/15/2020
+        End: 6/30/2023
+        Amount: $ 38,370,967.07
+        Dewscription: Consulting Services
+    </pre>
+    This vendor has other contracts and, as makes sense, they have different Contract Id numbers.
+    </p>
+    <p>
+    The only place we actually need to identity the contract is when we are relating documents to
+    a contract. And listing the contracts multiple times is not unforgivable. If there are three
+    documents for the contract above, showing those three documents three different times should not
+    be a problem. A page that shows a single contract and its history would want to combine these
+    contracts into one.
     </p>
     </div>
 </body>

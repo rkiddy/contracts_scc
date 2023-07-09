@@ -27,6 +27,7 @@ def contracts_main():
 
 
 @contracts_scc.route(f"/{cfg['WWW']}scc/all")
+@contracts_scc.route(f"/{cfg['WWW']}scc/all/")
 def contracts_all():
     main = env.get_template('scc_all/all.html')
     context = data.all_contracts()
@@ -34,27 +35,11 @@ def contracts_all():
     return main.render(**context)
 
 
-@contracts_scc.route(f"/{cfg['WWW']}scc/as_html")
-def contracts_as_html():
-    main = env.get_template('scc_all/all.html')
-    context = data.all_contracts()
-    context['show_as'] = 'html'
-    return main.render(**context)
-
-
-@contracts_scc.route(f"/{cfg['WWW']}scc/as_text")
-def contracts_as_text():
-    main = env.get_template('scc_all/all.html')
-    context = data.all_contracts()
-    context['show_as'] = 'text'
-    return main.render(**context)
-
-
-@contracts_scc.route(f"/{cfg['WWW']}scc/pmods")
-def contracts_price_mods():
-    main = env.get_template('scc_main/price_mods.html')
-    context = data.price_mods()
-    return main.render(**context)
+# @contracts_scc.route(f"/{cfg['WWW']}scc/pmods")
+# def contracts_price_mods():
+#     main = env.get_template('scc_main/price_mods.html')
+#     context = data.price_mods()
+#     return main.render(**context)
 
 
 @contracts_scc.route(f"/{cfg['WWW']}scc/vendor/<vendor_pk>")
@@ -99,7 +84,16 @@ def contracts_types(param):
     return contract.render(**context)
 
 
+@contracts_scc.route(f"/{cfg['WWW']}scc/docs")
+@contracts_scc.route(f"/{cfg['WWW']}scc/docs/")
+def contracts_docs():
+    contract = env.get_template('scc_docs/supporting.html')
+    context = data.build_supporting_docs()
+    return contract.render(**context)
+
+
 @contracts_scc.route(f"/{cfg['WWW']}scc/imports")
+@contracts_scc.route(f"/{cfg['WWW']}scc/imports/")
 def contracts_imports():
     contract = env.get_template('imports.html')
     context = imports.imports_main()
@@ -113,18 +107,24 @@ def contracts_integrity():
     return contract.render(**context)
 
 
-@contracts_scc.route(f"/{cfg['WWW']}scc/import_scan")
-def contracts_import_scan():
-    contract = env.get_template('imports.html')
-    context = imports.import_scan()
-    return contract.render(**context)
+@contracts_scc.route(f"/{cfg['WWW']}scc/import_scan/<digest>")
+def contracts_import_scan(digest):
+    if 'ADMIN_KEY' in cfg and cfg['ADMIN_KEY'] == digest:
+        contract = env.get_template('imports.html')
+        context = imports.import_scan()
+        return contract.render(**context)
+    else:
+        return contracts_main()
 
 
-@contracts_scc.route(f"/{cfg['WWW']}scc/import_save")
-def contracts_import_save():
-    contract = env.get_template('imports.html')
-    context = imports.import_save()
-    return contract.render(**context)
+@contracts_scc.route(f"/{cfg['WWW']}scc/import_save/<digest>")
+def contracts_import_save(digest):
+    if 'ADMIN_KEY' in cfg and cfg['ADMIN_KEY'] == digest:
+        contract = env.get_template('imports.html')
+        context = imports.import_save()
+        return contract.render(**context)
+    else:
+        return contracts_main()
 
 
 if __name__ == '__main__':
