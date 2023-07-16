@@ -49,16 +49,6 @@ on December 15, 2022 that lays out many of my issues with the Procurement
 Department and uses its access to internal information to lay out many more of the
 issues and problems with the system run by the Department.
 
-This script can be used to run the PDF scanning with tabula:
-
-#!/bin/bash
-
-java -jar ~/Projects/tabula/tabula-1.0.4-SNAPSHOT-jar-with-dependencies.jar \
-    --batch /tmp/import \
-    --lattice \
-    --format TSV \
-    --pages all
-
 This script could be used to regenerate the contract_ids table, if this is necessary:
 
 #!/bin/bash
@@ -85,13 +75,23 @@ I have to create an import directory manually, usually /tmp/import.
 
 I have to run the tabula tool manually.
 
+This script can be used to run the PDF scanning with tabula:
+
+#!/bin/bash
+
+java -jar ~/Projects/tabula/tabula-1.0.4-SNAPSHOT-jar-with-dependencies.jar \
+    --batch /tmp/import \
+    --lattice \
+    --format TSV \
+    --pages all
+
 I think I have to add the month data and source data manually.
 
 I have to change the code to use the correct TSV files.
 
 I have to change the code to use the correct month.
 
-mysql> insert into months values (42, '2023-05', unix_timestamp()*1000);
+mysql> insert into months values (43, '2023-06', unix_timestamp()*1000);
 
 mysql> insert into sources values (
     83,
@@ -107,11 +107,22 @@ mysql> insert into sources values (
     NULL
 );
 
+mysql> SHOW VARIABLES LIKE "secure_file_priv";
++------------------+-----------------------+
+| Variable_name    | Value                 |
++------------------+-----------------------+
+| secure_file_priv | /var/lib/mysql-files/ |
++------------------+-----------------------+
+
+
 Data Questions:
 
 We have a contract. See http://sccgov.iqm2.com/Citizens/Detail_LegiFile.aspx?Frame=&MeetingID=14895&MediaPosition=&ID=115588&CssClass=
 
-Approve Eighth Amendment to Agreement with Global Tel Link Corporation d/b/a ViaPath Technologies relating to providing Inmate Calling Systems and Inmate Tablet Systems Platform with no change to the maximum contract amount, and extending the agreement for an eight-month period through October 21, 2023, that has been reviewed and approved by County Counsel as to form and legality. (LA-1)
+Approve Eighth Amendment to Agreement with Global Tel Link Corporation d/b/a ViaPath Technologies relating to
+providing Inmate Calling Systems and Inmate Tablet Systems Platform with no change to the maximum contract
+amount, and extending the agreement for an eight-month period through October 21, 2023, that has been reviewed
+and approved by County Counsel as to form and legality. (LA-1)
 
 
 Attachments

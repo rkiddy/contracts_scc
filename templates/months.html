@@ -1,0 +1,42 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2//EN">
+<html>
+<head>
+    <title>Santa Clara County Active Contracts - Add Month</title>
+    {% include "styles.html" %}
+</head>
+<body>
+<div style="padding: 25px 25px 25px 25px;">
+    <table class="table table-striped">
+        <caption>Add Month</caption>
+        <form action="/contracts/scc/add_month" method="post">
+        <tbody>
+        <tr>
+            <th>Month</th>
+            <td><input type="text" name="month" /></td>
+        </tr>
+        <tr>
+            <th>Source URL 1</th>
+            <td><input type="text" name="source_url1" /></td>
+        </tr>
+        <tr>
+            <th>Alternate URL 1</th>
+            <td><input type="text" name="alt_url1" /></td>
+        </tr>
+        <tr>
+            <th>Source URL 2</th>
+            <td><input type="text" name="source_url2" /></td>
+        </tr>
+        <tr>
+            <th>Alternate URL 2</th>
+            <td><input type="text" name="alt_url2" /></td>
+        </tr>
+        <tr>
+            <td>&nbsp;</td>
+            <td><input type="submit"></td>
+        </tr>
+        </tbody>
+        </form>
+    </table>
+</div>
+</body>
+</html>

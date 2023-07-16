@@ -2,7 +2,7 @@
 import sys
 
 from dotenv import dotenv_values
-from flask import Flask
+from flask import Flask, request, redirect
 from jinja2 import Environment, PackageLoader
 
 import data
@@ -125,6 +125,21 @@ def contracts_import_save(digest):
         return contract.render(**context)
     else:
         return contracts_main()
+
+
+@contracts_scc.route(f"/{cfg['WWW']}scc/months/<digest>")
+def contracts_months(digest):
+    if 'ADMIN_KEY' in cfg and cfg['ADMIN_KEY'] == digest:
+        contract = env.get_template('months.html')
+        return contract.render()
+    else:
+        return contracts_main()
+
+
+@contracts_scc.route(f"/{cfg['WWW']}scc/add_month", methods=['POST'])
+def contracts_add_month():
+    imports.add_month(request)
+    return redirect(f"/{cfg['WWW']}scc/imports")
 
 
 if __name__ == '__main__':

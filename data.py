@@ -352,7 +352,7 @@ def build_scc_main():
 
     row = conn.execute(sql).fetchone()
     context['all_count'] = int(row['count'])
-    context['all_sum'] = money(int(row['sum_costs']))
+    context['all_sum'] = money(row['sum_costs'])
 
     context['sources'] = dict()
     sql = f"select source_url from sources where month_pk = {month_pk} and source_url like '%%/Contract%%'"

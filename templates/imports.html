@@ -6,7 +6,15 @@
 </head>
 <body>
 <div style="padding: 25px 25px 25px 25px;">
-    <p><a href="/contracts/scc/integrity">Integrity Check</a></p>
+    <p>
+        <a href="/contracts/scc/integrity">Integrity Check</a>
+        -
+        <a href="/contracts/scc/months/{{ key }}">Add Month</a>
+        -
+        <a href="/contracts/scc/import_scan/{{ key }}">Import Scan</a>
+        -
+        <a href="/contracts/scc/import_save/{{ key }}">Import Save</a>
+    </p>
     {% if messages %}
     <ul>
         {% for message in messages %}

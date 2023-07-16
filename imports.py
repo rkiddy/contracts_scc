@@ -2,6 +2,7 @@ import re
 
 from dotenv import dotenv_values
 from sqlalchemy import create_engine
+import datetime as dt
 
 cfg = dotenv_values(".env")
 
@@ -56,16 +57,19 @@ def imports_main():
     context['months_data'] = months
     context['months'] = sorted(list(months.keys()))
     context['months'].reverse()
+
+    context['key'] = cfg['ADMIN_KEY']
+
     return context
 
 
 def line_is_header(line):
 
-    if line.startswith('Document Type'):
+    if line.startswith('Document Type') or line.startswith('Report Month'):
         return True
     if 'Effective Date' in line:
         return True
-    if 'Commodity Description' in line:
+    if 'Commodity Desc' in line:
         return True
     if line.startswith('Owner Name'):
         return True
@@ -92,37 +96,85 @@ def fix_money(amount):
 
 
 def sabc_data(parts):
-    row = dict()
-    row['owner_name'] = ''
-    row['doc_type'] = parts[0]
-    row['units'] = [fix_unit_name(f"{parts[2]} - {parts[1]}")]
-    row['ariba_id'] = ''
-    row['sap_id'] = ''
-    row['con_id'] = parts[3]
-    row['v_name'] = parts[4]
-    row['eff_date'] = fix_date(parts[5])
-    row['exp_date'] = fix_date(parts[6])
-    row['con_value_orig'] = parts[7]
-    row['con_value'] = fix_money(parts[7])
-    row['descrip'] = parts[8].strip()
+    # in SA BC file:
+    #   PRE-June, 2023
+    #     0: Document Type
+    #     1: Budget Unit
+    #     2: Budget Unit Name
+    #     3: "Contract ID (PO ID)"
+    #     4: Vendor Name
+    #     5: Effective Date
+    #     6: Expiration Date
+    #     7: "Contract Value (PO Value)"
+    #     8: Commodity Description
+    #
+    #   June, 2023 and after:
+    #     0: Report Type
+    #     1: Document Type
+    #     2: Budget Unit
+    #     3: Budget Unit Name
+    #     4: "Contract ID (PO ID)"
+    #     5: Vendor Name
+    #     6: Effective Date
+    #     7: Expiration Date
+    #     8: "Contract Value (PO Value)"
+    #     9: Commodity Description
+    #
+    # if month is before '2023-06', ofst = 0.
+    ofst = 1
+
+    try:
+        row = dict()
+        row['owner_name'] = ''
+        row['doc_type'] = parts[0+ofst]
+        row['units'] = [fix_unit_name(f"{parts[2+ofst]} - {parts[1+ofst]}")]
+        row['ariba_id'] = ''
+        row['sap_id'] = ''
+        row['con_id'] = parts[3+ofst]
+        row['v_name'] = parts[4+ofst]
+        row['eff_date'] = fix_date(parts[5+ofst])
+        row['exp_date'] = fix_date(parts[6+ofst])
+        row['con_value_orig'] = parts[7+ofst]
+        row['con_value'] = fix_money(parts[7+ofst])
+        row['descrip'] = parts[8+ofst].strip()
+    except Exception as e:
+        print(f"BAD SABC row: {parts}")
+        raise e
+
     return row
 
 
 def contract_data(parts):
-    row = dict()
-    row['doc_type'] = 'CON'
-    row['owner_name'] = parts[0]
-    row['ariba_id'] = parts[1]
-    row['con_id'] = ''
-    row['sap_id'] = parts[2]
-    row['v_name'] = parts[3]
-    row['eff_date'] = fix_date(parts[4])
-    row['exp_date'] = fix_date(parts[5])
-    row['con_value_orig'] = parts[6]
-    row['con_value'] = fix_money(parts[6])
-    row['units'] = [fix_unit_name(parts[7]).strip()]
-    if len(parts) > 8:
-        row['descrip'] = parts[8].strip()
+    # in Contracts file:
+    #     0: Owner Name
+    #     1: Contract ID Ariba
+    #     2: Contract ID SAP
+    #     3: Vendor Name
+    #     4: Effective Date
+    #     5: Expiration Date
+    #     6: Contract Value
+    #     7: Authorized Users
+    #     8: Commodity Description
+    #
+    try:
+        row = dict()
+        row['doc_type'] = 'CON'
+        row['owner_name'] = parts[0]
+        row['ariba_id'] = parts[1]
+        row['con_id'] = ''
+        row['sap_id'] = parts[2]
+        row['v_name'] = parts[3]
+        row['eff_date'] = fix_date(parts[4])
+        row['exp_date'] = fix_date(parts[5])
+        row['con_value_orig'] = parts[6]
+        row['con_value'] = fix_money(parts[6])
+        row['units'] = [fix_unit_name(parts[7]).strip()]
+        if len(parts) > 8:
+            row['descrip'] = parts[8].strip()
+    except Exception as e:
+        print(f"BAD CON row: {parts}")
+        raise e
+
     return row
 
 
@@ -227,6 +279,11 @@ def fetch_max_pk(table):
     return db_exec(conn, sql)[0]['pk']
 
 
+def fetch_max_month_pk():
+    sql = "select max(pk) as pk from months where approved is not NULL"
+    return int(db_exec(conn, sql)[0]['pk'])
+
+
 def fetch_source_pks(month_pk):
     pks = dict()
     sql = f"select pk, source_url from sources where month_pk = {month_pk}"
@@ -240,23 +297,35 @@ def fetch_source_pks(month_pk):
     return pks
 
 
+def add_month(request):
+    month_nums = request.form.get('month')
+    source_url1 = request.form.get('source_url1')
+    alt_url1 = request.form.get('alt_url1')
+    source_url2 = request.form.get('source_url2')
+    alt_url2 = request.form.get('alt_url2')
+    now = int(dt.datetime.now().timestamp() * 1000)
+    month_pk = fetch_max_pk('months')
+
+    sql = f"insert into months values ({month_pk+1}, '{month_nums}', {now})"
+    db_exec(conn, sql)
+
+    sources_pk = fetch_max_pk('sources')
+
+    sql = f"""
+        insert into sources values
+        ({sources_pk+1},  '{source_url1}', '{alt_url1}', {month_pk+1}, NULL),
+        ({sources_pk+2},  '{source_url2}', '{alt_url2}', {month_pk+1}, NULL)
+    """
+    db_exec(conn, sql)
+    print(f"Created: month = {month_nums}")
+
+
 def import_scan():
     context = dict()
 
     rows = list()
 
-    # in SA BC file:
-    #     0: Document Type
-    #     1: Budget Unit
-    #     2: Budget Unit Name
-    #     3: "Contract ID (PO ID)"
-    #     4: Vendor Name
-    #     5: Effective Date
-    #     6: Expiration Date
-    #     7: "Contract Value (PO Value)"
-    #     8: Commodity Description
-    #
-    file = "/tmp/import/SA BC Report for Month of May 2023.tsv"
+    file = "/tmp/import/SA BC Report for Month of June 2023.tsv"
     with open(file, 'r') as sabc_file:
 
         for line in sabc_file:
@@ -267,19 +336,8 @@ def import_scan():
                 row = sabc_data(parts)
                 rows.append(row)
 
-    # in Contracts file:
-    #     0: Owner Name
-    #     1: Contract ID Ariba
-    #     2: Contract ID SAP
-    #     3: Vendor Name
-    #     4: Effective Date
-    #     5: Expiration Date
-    #     6: Contract Value
-    #     7: Authorized Users
-    #     8: Commodity Description
-    #
     bad_lines = list()
-    file = "/tmp/import/Contracts Report for Month of May 2023.tsv"
+    file = "/tmp/import/Contracts Report for Month of June 2023_0.tsv"
     with open(file, 'r') as contracts_file:
 
         for line in contracts_file:
@@ -316,7 +374,9 @@ def import_save():
     max_con_pk = fetch_max_pk('contracts')
     max_cid_pk = fetch_max_pk('contract_ids')
 
-    source_pks = fetch_source_pks(42)
+    mpk = fetch_max_month_pk()
+
+    source_pks = fetch_source_pks(mpk)
 
     fetch_units()
 
@@ -384,7 +444,7 @@ def import_save():
         add_to_sql(c, v, 'commodity_desc', row['descrip'])
 
         c.append('month_pk')
-        v.append(str(42))
+        v.append(str(mpk))
 
         c.append('source_pk')
         v.append(str(source_pks[row['doc_type']]))
