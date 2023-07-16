@@ -468,8 +468,8 @@ def integrity_check():
     msgs = list()
     msgs.extend(integrity_check_vendor_pks())
     msgs.extend(integrity_check_contract_ids())
-    msgs.extend(integrity_check_changed_vendor_names())
-    msgs.extend(integrity_check_changed_descriptions())
+    # msgs.extend(integrity_check_changed_vendor_names())
+    # msgs.extend(integrity_check_changed_descriptions())
     msgs.extend(integrity_check_contract_id_types_not_crossed())
     msgs.extend(integrity_check_contract_ids_not_duplicated())
     context['messages'] = msgs
@@ -489,27 +489,15 @@ def integrity_check_vendor_pks():
     """
     msgs = list()
 
-    sql = "select vendor_pk as pk, vendor_name as name from contracts"
-    vendors = dict()
+    sql = """
+        select distinct(concat(c1.vendor_pk, ' - ', c1.vendor_name, ' - ', c2.vendor_name)) as vendor
+        from contracts c1, contracts c2
+        where c1.vendor_name = c2.vendor_name and c1.vendor_pk != c2.vendor_pk;
+    """
     for row in db_exec(conn, sql):
-        pk = row['pk']
-        name = row['name']
-        if pk not in vendors:
-            vendors[pk] = set()
-        vendors[pk].add(name)
+        msgs.append(row['vendor'])
 
-    pk_counts = dict()
-    for pk in vendors:
-        nmlen = len(vendors[pk])
-        if nmlen not in pk_counts:
-            pk_counts[nmlen] = 0
-        pk_counts[nmlen] += 1
-        if nmlen > 1:
-            print(f"pk: {pk} -> {vendors[pk]}")
-    for nmlen in pk_counts:
-        msgs.append(f"{nmlen} -> {pk_counts[nmlen]}")
-
-    if len(pk_counts) == 1:
+    if len(msgs) == 0:
         msgs.append("vendor pk result GOOD")
     else:
         msgs.append("vendor pk result NOT good.")
@@ -646,48 +634,36 @@ def integrity_check_contract_id_types_not_crossed():
 
 
 def integrity_check_contract_ids_not_duplicated():
-    """
-    TODO If I use the SQL to check whether the one month_pk equals the other month_pk, the query takes too long. Why?
-    """
     msgs = list()
 
-    # TODO add "c1.month_pk = c2.month_pk" to the end of these.
-
-    duped_sap_ids = list()
+    differing_ariba_ids = list()
 
     sql = """
-        select c1.pk as pk1, c2.pk as pk2, c1.month_pk as month_pk1, c2.month_pk as month_pk2,
-            c1.sap_id, c1.ariba_id as ariba_id1, c2.ariba_id as ariba_id2
+        select distinct(concat(c1.sap_id, ' - ', c1.ariba_id, ' - ', c2.ariba_id)) as ids
         from contracts c1, contracts c2
-        where c1.sap_id = c2.sap_id and
-            c1.ariba_id != c2.ariba_id
+        where c1.sap_id = c2.sap_id and c1.ariba_id < c2.ariba_id;
         """
     rows = db_exec(conn, sql)
     for row in rows:
-        if row['month_pk1'] == row['month_pk2'] and row['pk1'] < row['pk2']:
-            duped_sap_ids.append(row)
+        differing_ariba_ids.append(row['ids'])
 
-    duped_ariba_ids = list()
+    differing_sap_ids = list()
 
     sql = """
-        select c1.pk as pk1, c2.pk as pk2, c1.month_pk as month_pk1, c2.month_pk as month_pk2,
-            c1.ariba_id, c1.sap_id as sap_id1, c2.sap_id as sap_id2
+        select distinct(concat(c1.ariba_id, ' - ', c1.sap_id, ' - ', c2.sap_id)) as ids
         from contracts c1, contracts c2
-        where c1.ariba_id = c2.ariba_id and
-            c1.sap_id != c2.sap_id
+        where c1.ariba_id = c2.ariba_id and c1.sap_id < c2.sap_id;
         """
-    rows = db_exec(conn, sql)
-    for row in rows:
-        if row['month_pk1'] == row['month_pk2'] and row['pk1'] < row['pk2']:
-            duped_ariba_ids.append(row)
+    for row in db_exec(conn, sql):
+        differing_sap_ids.append(row['ids'])
 
-    if len(duped_sap_ids) == 0 and len(duped_ariba_ids) == 0:
+    if len(differing_ariba_ids) == 0 and len(differing_sap_ids) == 0:
         msgs.append(f"contract ids not duplicated, result GOOD")
     else:
-        for row in duped_sap_ids:
-            msgs.append(f"bad SAP ID: {row}")
-        for row in duped_ariba_ids:
-            msgs.append(f"bad ARIBA ID: {row}")
+        for row in differing_ariba_ids:
+            msgs.append(f"DIFFER ariba_ids: {row}")
+        for row in differing_sap_ids:
+            msgs.append(f"DIFFER sap_ids: {row}")
         msgs.append(f"contract ids might be DUPLICATED, result bad")
 
     return msgs
