@@ -7,6 +7,7 @@ from jinja2 import Environment, PackageLoader
 
 import data
 import imports
+import integrity
 
 cfg = dotenv_values(".env")
 
@@ -103,7 +104,7 @@ def contracts_imports():
 @contracts_scc.route(f"/{cfg['WWW']}scc/integrity")
 def contracts_integrity():
     contract = env.get_template('imports.html')
-    context = imports.integrity_check()
+    context = integrity.integrity_check()
     return contract.render(**context)
 
 
