@@ -479,6 +479,7 @@ def build_scc_contract():
         display_all = True
     else:
         display_all = False
+    context['display_all'] = display_all
 
     if parts[0] == 'None':
         ariba_id_str = "is NULL"

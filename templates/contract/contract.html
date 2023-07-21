@@ -9,7 +9,11 @@
     {% include "top_nav.html" %}
     {% include "curr_month.html" %}
     <p>
+        {% if display_all %}
+        <a href="/contracts/scc/contract/{{ qual }}">Hide Historical</a>
+        {% else %}
         <a href="/contracts/scc/contract/{{ qual }}-ALL">Show Historical</a>
+        {% endif %}
     </p>
     <table class="table table-striped">
         <thead>
