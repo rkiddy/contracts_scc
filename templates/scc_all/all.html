@@ -13,10 +13,11 @@
                         {"name": "Contract ID", "orderable": false},
                         {"name": "{{ current_year }} Cost", "orderable": true},
                         {"name": "Total Cost", "orderable": true},
+                        {"name": "Costs History", "orderable": false},
                         {"name": "Effective<br/>Expiry Date", "orderable": true},
                         {"name": "Agencies", "orderable": false},
                         {"name": "Description", "orderable": true},
-                        {"name": "Docs", "orderable": true}
+                        {"name": "Docs", "orderable": false}
                     ]
                 }
             );
@@ -48,14 +49,13 @@
             <tr style="white-space: nowrap;">
                 <th>Vendor</th>
                 <th>Contract ID</th>
-                {% if not has_multiple_months %}
                 <th>{{ current_year }} Cost</th>
-                {% endif %}
                 <th>Total Cost</th>
+                <th>Costs History</th>
                 <th>Effective<br/>Expiry Date</th>
                 <th>Agencies</th>
                 <th>Description</th>
-                <th>Docs</th>
+                <th/>
             </tr>
         </thead>
         <tbody>
@@ -63,35 +63,39 @@
             <tr id="contract_{{ contract.contract_pk }}">
                 <td><a href="/contracts/scc/vendor/{{ contract.vendor_pk }}">{{ contract.vendor_name }}</a></td>
                 <td style = "white-space: nowrap;">
-                    <ul>
-                    {% if contract['contract_id'] %}
-                        <li>cID: {{ contract['contract_id'] }}</li>
+                    {% if contract.contract_id %}
+                        cID: {{ contract['contract_id'] }}
                     {% endif %}
-                    {% if contract['ariba_id'] %}
-                        <li>aID: {{ contract['ariba_id'] }}</li>
+                    {% if contract.ariba_id %}
+                        aID: {{ contract['ariba_id'] }}
                     {% endif %}
-                    {% if contract['sap_id'] %}
-                        <li>sID: {{ contract['sap_id'] }}</li>
+                    {% if contract.ariba_id and contract.sap_id %}
+                    <br/>
                     {% endif %}
-                  </ul>
+                    {% if contract.sap_id %}
+                        sID: {{ contract['sap_id'] }}
+                    {% endif %}
                 </td>
                 <td style = "white-space: nowrap;">{{ contract.year_value }}</td>
                 <td style = "white-space: nowrap;">{{ contract.contract_value }}</td>
+                <td>
+                    {% if contract.v_len != 1 %}
+                    {{ contract.v_start }}<br/>--><br/>{{ contract.v_end }}
+                    {% endif %}
+                </td>
                 <td>{{ contract.effective_date }}<br/>{{ contract.expir_date }}</td>
                 <td>
-                  <ul>
-                  {% for agency in contract.agencies %}
-                      <li><a href="/contracts/scc/agency/{{ agency.pk }}">{{ agency.name }}</a></li>
-                  {% endfor %}
-                  </ul>
+                    {% if contract.agencies_len == 1 %}
+                    <a href="/contracts/scc/agency/{{ contract.agencies[0].pk }}">{{ contract.agencies[0].name }}</a>
+                    {% else %}
+                    {% for agency in contract.agencies %}
+                        -&nbsp;<a href="/contracts/scc/agency/{{ agency.pk }}">{{ agency.name }}</a><br/>
+                    {% endfor %}
+                    {% endif %}
                 </td>
                 <td><a href="/contracts/scc/desc/{{ contract.commodity_desc }}">{{ contract.commodity_desc }}</a></td>
                 <td>
-                    {% if contract.docs %}
-                    <a href="/contracts/scc/contract/{{ contract['ariba_id'] }}-{{ contract['contract_id'] }}-{{ contract['sap_id'] }}">{{ contract.docs }}</a>
-                    {% else %}
-                    <a href="/contracts/scc/contract/{{ contract['ariba_id'] }}-{{ contract['contract_id'] }}-{{ contract['sap_id'] }}">---</a>
-                    {% endif %}
+                    <a href="/contracts/scc/contract/{{ contract['ariba_id'] }}-{{ contract['contract_id'] }}-{{ contract['sap_id'] }}">&nbsp;*&nbsp;</a>
                 </td>
             </tr>
         {% endfor %}

@@ -120,6 +120,8 @@ def fetch_contracts(month_pk, fetch_key=None, fetch_value=None):
     # <a href="/contracts/scc/desc/{{ contract.commodity_desc }}">
     # <a href="/contracts/scc/bucket/{{ bucket }}">
 
+    # Fetch the main contracts list.
+    #
     sql = f"""
         select c1.pk as contract_pk, c1.owner_name,
             c1.ariba_id, c1.contract_id, c1.sap_id,
@@ -145,17 +147,30 @@ def fetch_contracts(month_pk, fetch_key=None, fetch_value=None):
             c1.contract_value >= {cost_buckets[fetch_value][0] * 100} and
             c1.contract_value < {cost_buckets[fetch_value][1] * 100}
         """
-        pass
 
     contracts = db_exec(con_engine, sql)
     contracts_by_pk = dict()
+    contracts_ids = dict()
     for contract in contracts:
-        contracts_by_pk[contract['contract_pk']] = contract
 
+        c_pk = contract['contract_pk']
+
+        contract['year_value'] = money(year_value_for_contract(contract))
+        contract['contract_value'] = money(contract['contract_value'])
+
+        # for the contract value changes data
+        ids = f"{contract['ariba_id']}-{contract['contract_id']}-{contract['sap_id']}".replace('None', '')
+        contracts_ids[ids] = {'pk': c_pk}
+
+        # for the main contracts list.
+        contracts_by_pk[c_pk] = contract
+
+    # Fetch the budget unit info to associate with contracts.
+    #
     sql = f"""
-    select j1.contract_pk, u1.pk, u1.unit_name, u1.unit_num
-    from budget_unit_joins j1, budget_units u1
-    where j1.contract_pk in ({','.join([ str(ckey) for ckey in contracts_by_pk.keys()])}) and j1.unit_pk = u1.pk
+        select j1.contract_pk, u1.pk, u1.unit_name, u1.unit_num
+        from budget_unit_joins j1, budget_units u1
+        where j1.contract_pk in ({','.join([ str(ckey) for ckey in contracts_by_pk.keys()])}) and j1.unit_pk = u1.pk
     """
 
     columns = {
@@ -177,7 +192,38 @@ def fetch_contracts(month_pk, fetch_key=None, fetch_value=None):
                 'pk': unit_link['unit_pk']
             }
         )
+        contracts_by_pk[cpk]['agencies_len'] = len(contracts_by_pk[cpk]['agencies'])
 
+    # Fetch the contract value change information.
+    #
+    sql = """
+        select concat(coalesce(ariba_id, ''), '-', coalesce(contract_id, ''), '-', coalesce(sap_id, '')) as full,
+            contract_value, month_pk
+        from contracts order by month_pk
+    """
+    for row in db_exec(conn, sql):
+        if row['full'] in contracts_ids:
+            if 'values' not in contracts_ids[row['full']]:
+                contracts_ids[row['full']]['values'] = list()
+            contracts_ids[row['full']]['values'].append(row['contract_value'])
+
+    for ids in contracts_ids:
+
+        c_pk = contracts_ids[ids]['pk']
+
+        contracts_by_pk[c_pk]['v_start'] = money(contracts_ids[ids]['values'][0])
+        contracts_by_pk[c_pk]['v_end'] = money(contracts_ids[ids]['values'][-1])
+
+        next_values = list()
+        next_values.append(contracts_ids[ids]['values'][0])
+        for v in contracts_ids[ids]['values'][1:]:
+            if v != next_values[-1]:
+                next_values.append(v)
+        contracts_by_pk[c_pk]['values'] = [money(r) for r in next_values]
+        contracts_by_pk[c_pk]['v_len'] = len(next_values)
+
+    # Attach the contracts to send on.
+    #
     contracts = list(contracts_by_pk.values())
 
     sql = "select ariba_id, contract_id, sap_id from supporting_docs"
@@ -195,10 +241,6 @@ def fetch_contracts(month_pk, fetch_key=None, fetch_value=None):
             docs[cid] += 1
 
     for contract in contracts:
-
-        contract['year_value'] = money(year_value_for_contract(contract))
-
-        contract['contract_value'] = money(contract['contract_value'])
 
         cid = f"{contract['ariba_id']}-{contract['contract_id']}-{contract['sap_id']}"
         if cid in docs:
@@ -703,7 +745,8 @@ def build_supporting_docs():
             where j1.contract_pk in ({con_pks})
         """
         for row in db_exec(conn, sql):
-            unit_pks[row['unit_pk']] = row['unit_name']
+            # print(f"row: {row}")
+            unit_pks[row['unit_num']] = row['unit_name']
 
         found[key]['agencies'] = list()
 
