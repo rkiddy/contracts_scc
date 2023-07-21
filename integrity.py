@@ -1,5 +1,6 @@
 from dotenv import dotenv_values
 from sqlalchemy import create_engine
+import re
 
 cfg = dotenv_values(".env")
 
@@ -26,6 +27,7 @@ def integrity_check():
     # TOO MANY? msgs.extend(integrity_check_changed_descriptions())
     msgs.extend(integrity_check_contract_id_types_not_crossed())
     msgs.extend(integrity_check_contract_ids_not_duplicated())
+    msgs.extend(integrity_check_id_formats())
     context['messages'] = msgs
     return context
 
@@ -115,112 +117,6 @@ def integrity_check_vendor_names():
     return msgs
 
 
-#
-# def fetch_contract_ids(key, sql):
-#     ids = dict()
-#     for row in db_exec(conn, sql):
-#         parts = list()
-#         if row['ariba_id'] is None:
-#             parts.append('NULL')
-#         else:
-#             parts.append(row['ariba_id'])
-#         if row['contract_id'] is None:
-#             parts.append('NULL')
-#         else:
-#             parts.append(row['contract_id'])
-#         if row['sap_id'] is None:
-#             parts.append('NULL')
-#         else:
-#             parts.append(row['sap_id'])
-#         ids_key = '|'.join(parts)
-#         if ids_key not in ids:
-#             ids[ids_key] = list()
-#         ids[ids_key].append(str(row[key]))
-#     return ids
-#
-#
-# def integrity_check_contract_ids():
-#     msgs = list()
-#
-#     msgs.append('Question: ')
-#     checked = 0
-#     bad = 0
-#
-#     sql = f"select pk, ariba_id, contract_id, sap_id from contracts"
-#     ids = fetch_contract_ids('pk', sql)
-#
-#     for ids_key in ids:
-#         checked += 1
-#         pks = ids[ids_key]
-#         uniq_pks = set(ids[ids_key])
-#         if len(pks) != len(uniq_pks):
-#             msgs.append(f"BAD contract ids: {ids_key} -> {pks}")
-#             bad += 1
-#     msgs.append(f"checked contract ids # {checked}, found bad # {bad}")
-#
-#     if bad == 0:
-#         msgs.append(f"contract ids result GOOD")
-#     else:
-#         msgs.append(f"contract ids result NOT good")
-#
-#     return msgs
-
-
-def integrity_check_changed_vendor_names():
-    """
-    If multiple vendor names occur, then the latest name should be determined.
-    The other names should be added to the list of alternate names for the vendor.
-    """
-    msgs = list()
-
-    checked = 0
-    bad = 0
-
-    sql = f"""
-    select v1.name, c1.ariba_id, c1.contract_id, c1.sap_id
-    from contracts c1 left outer join vendors v1 on c1.vendor_pk = v1.pk
-    """
-
-    ids = fetch_contract_ids('name', sql)
-    for ids_key in ids:
-        checked += 1
-        if len(set(ids[ids_key])) > 1:
-            msgs.append(f"CHANGED contract ids to vendor name: {ids_key} -> {ids[ids_key]}")
-            bad += 1
-
-    if bad == 0:
-        msgs.append(f"checked contract ids matching result to names # {checked}, all GOOD")
-    else:
-        msgs.append(f"checked contract ids matching result to names # {checked}, found CHANGED # {bad}")
-
-    return msgs
-
-
-def integrity_check_changed_descriptions():
-    """
-    Not sure what to do about these changes.
-    # TODO Figure out what a changed description means. Is it a real change?
-    """
-    msgs = list()
-    checked = 0
-    bad = 0
-
-    sql = f"select commodity_desc, ariba_id, contract_id, sap_id from contracts"
-    ids = fetch_contract_ids('commodity_desc', sql)
-    for ids_key in ids:
-        checked += 1
-        if len(set(ids[ids_key])) > 1:
-            msgs.append(f"CHANGED contract ids to description: {ids_key} -> {ids[ids_key]}")
-            bad += 1
-
-    if bad == 0:
-        msgs.append(f"checked contract ids matching result to descriptions # {checked}, all GOOD")
-    else:
-        msgs.append(f"checked contract ids matching result to descriptions # {checked}, found CHANGED # {bad}")
-
-    return msgs
-
-
 def integrity_check_contract_id_types_not_crossed():
     """
     A contract should either be from the Contracts source and it will have one or both
@@ -256,7 +152,7 @@ def integrity_check_contract_ids_not_duplicated():
     differing_ariba_ids = list()
 
     sql = """
-        select distinct(concat(c1.sap_id, ' - ', c1.ariba_id, ' - ', c2.ariba_id)) as ids
+        select distinct(concat(c1.sap_id, ' + ', c1.ariba_id, ' + ', c2.ariba_id)) as ids
         from contracts c1, contracts c2
         where c1.sap_id = c2.sap_id and c1.ariba_id < c2.ariba_id;
         """
@@ -267,7 +163,7 @@ def integrity_check_contract_ids_not_duplicated():
     differing_sap_ids = list()
 
     sql = """
-        select distinct(concat(c1.ariba_id, ' - ', c1.sap_id, ' - ', c2.sap_id)) as ids
+        select distinct(concat(c1.ariba_id, ' + ', c1.sap_id, ' + ', c2.sap_id)) as ids
         from contracts c1, contracts c2
         where c1.ariba_id = c2.ariba_id and c1.sap_id < c2.sap_id;
         """
@@ -282,5 +178,60 @@ def integrity_check_contract_ids_not_duplicated():
         for row in differing_sap_ids:
             msgs.append(f"DIFFER sap_ids: {row}")
         msgs.append(f"contract ids might be DUPLICATED, result bad")
+
+    return msgs
+
+
+def integrity_check_id_formats():
+    msgs = list()
+
+    msgs.append('Question: Are any of the IDs in the wrong format, or with garbage strings?')
+
+    p_num = re.compile("^[0-9]*$")
+    p_cw = re.compile("^CW[0-9]*$")
+    p_lcw = re.compile("^LCW[0-9]*$")
+
+    ok = True
+
+    sql = "select pk, ariba_id, contract_id, sap_id from contracts"
+    for row in db_exec(conn, sql):
+        row_ok = True
+        a_id = row['ariba_id']
+        c_id = row['contract_id']
+        s_id = row['sap_id']
+        asDict = f"a: {a_id}, c: {c_id}, s: {s_id}"
+
+        if a_id:
+            parts = a_id.split(' - ')
+            for part in parts:
+                if not re.match(p_num, part):
+                    if not re.match(p_cw, part):
+                        if not re.match(p_lcw, part):
+                            row_ok = False
+
+        if c_id:
+            parts = c_id.split(' - ')
+            for part in parts:
+                if not re.match(p_num, part):
+                    if not re.match(p_cw, part):
+                        if not re.match(p_lcw, part):
+                            row_ok = False
+
+        if s_id:
+            parts = s_id.split(' - ')
+            for part in parts:
+                if not re.match(p_num, part):
+                    if not re.match(p_cw, part):
+                        if not re.match(p_lcw, part):
+                            row_ok = False
+
+        if not row_ok:
+            ok = False
+            msgs.append(asDict)
+
+    if ok:
+        msgs.append(f"id formats checked, all GOOD")
+    else:
+        msgs.append(f"id formats checked, NOT all good")
 
     return msgs
