@@ -142,6 +142,172 @@ Attachments
 So, both CW2231398 and CW2239938 represent the same real contract, but the id numbers are different and
 the vendor names are different. Supposedly, the company changed its name, but who knows.
 
+What search?
 
+I did a search in the BoS meeting materials site for "4leaf". It returned 54 attachements.
+
+What the heck are these?
+
+Executed Project Agreement No. 7 to PSA with 4Leaf, Inc.
+http://sccgov.iqm2.com/Citizens/FileOpen.aspx?Type=4&ID=196653
+
+Executed Project Agreement #2 with 4Leaf Inc
+http://sccgov.iqm2.com/Citizens/FileOpen.aspx?Type=4&ID=129780
+
+Executed Agreement with 4Leaf
+http://sccgov.iqm2.com/Citizens/FileOpen.aspx?Type=4&ID=168332
+
+Executed Project Agreement No. 4 to PSA with 4Leaf, Inc.
+http://sccgov.iqm2.com/Citizens/FileOpen.aspx?Type=4&ID=196663
+
+Executed Agreement No. 9 with 4Leaf Inc.
+http://sccgov.iqm2.com/Citizens/FileOpen.aspx?Type=4&ID=198037
+
+Executed third PA with 4Leaf Inc
+http://sccgov.iqm2.com/Citizens/FileOpen.aspx?Type=4&ID=139214
+
+Executed 4th Amendment to Project Agreement with 4Leaf, Inc.
+http://sccgov.iqm2.com/Citizens/FileOpen.aspx?Type=4&ID=142122
+
+Executed Project Agreement No. 7 with 4Leaf, Inc.
+http://sccgov.iqm2.com/Citizens/FileOpen.aspx?Type=4&ID=221580
+
+4Leaf PSA
+http://sccgov.iqm2.com/Citizens/FileOpen.aspx?Type=4&ID=141914
+
+Executed Project Agreement No. 5 to PSA with 4Leaf, Inc.
+http://sccgov.iqm2.com/Citizens/FileOpen.aspx?Type=4&ID=218863
+
+Executed Project Agreement #8 with 4Leaf Inc.
+http://sccgov.iqm2.com/Citizens/FileOpen.aspx?Type=4&ID=156833
+
+Executed 1st Agrement for 4 Leaf Inc. PA#9
+http://sccgov.iqm2.com/Citizens/FileOpen.aspx?Type=4&ID=169512
+
+Executed Project Agreement No. 2 with 4Leaf, Inc.
+http://sccgov.iqm2.com/Citizens/FileOpen.aspx?Type=4&ID=210030
+
+Executed Project Agreement No. 1 with 4Leaf, Inc.
+http://sccgov.iqm2.com/Citizens/FileOpen.aspx?Type=4&ID=200002
+
+Executed First Amendment to Agreement with 4Leaf Inc.
+http://sccgov.iqm2.com/Citizens/FileOpen.aspx?Type=4&ID=159208
+
+Executed First Amendment to PA# 1 with 4 Leaf, Inc.
+http://sccgov.iqm2.com/Citizens/FileOpen.aspx?Type=4&ID=133817
+
+Executed First Amendment to Project Agreement No. 2 with 4Leaf, Inc.
+http://sccgov.iqm2.com/Citizens/FileOpen.aspx?Type=4&ID=218261
+
+Executed Project Agreement No. 7 with 4Leaf, Inc.
+http://sccgov.iqm2.com/Citizens/FileOpen.aspx?Type=4&ID=202665
+
+Executed Project Agreement No. 11 to PSA with 4Leaf, Inc.
+http://sccgov.iqm2.com/Citizens/FileOpen.aspx?Type=4&ID=176164
+
+Executed Project Agreement No. 11 with 4Leaf, Inc.
+http://sccgov.iqm2.com/Citizens/FileOpen.aspx?Type=4&ID=202124
+
+Executed Project Agreement No. 3 to PSA with 4Leaf, INc.
+http://sccgov.iqm2.com/Citizens/FileOpen.aspx?Type=4&ID=176266
+
+Executed Project Agreement No. 4 with 4Leaf, Inc.
+http://sccgov.iqm2.com/Citizens/FileOpen.aspx?Type=4&ID=218222
+
+Executed Project Agreement No. 6 with 4Leaf, Inc.
+http://sccgov.iqm2.com/Citizens/FileOpen.aspx?Type=4&ID=218229
+
+Second Amendment to Agreement with 4 Leaf
+http://sccgov.iqm2.com/Citizens/FileOpen.aspx?Type=4&ID=174744
+
+Executed 1st Agrement for 4 Leaf Inc. PA#8
+http://sccgov.iqm2.com/Citizens/FileOpen.aspx?Type=4&ID=156867
+
+Executed Project No. 10 to Professional Services Agreement with 4leaf,
+http://sccgov.iqm2.com/Citizens/FileOpen.aspx?Type=4&ID=163178
+
+Executed Project Agreement No. 1 with 4Leaf, Inc.
+http://sccgov.iqm2.com/Citizens/FileOpen.aspx?Type=4&ID=197615
+
+Executed 1st Agrement for 4 Leaf Inc. PA#9
+http://sccgov.iqm2.com/Citizens/FileOpen.aspx?Type=4&ID=156868
+
+Executed 1st Agrement for 4 Leaf Inc. PA#9
+http://sccgov.iqm2.com/Citizens/FileOpen.aspx?Type=4&ID=156864
+
+Executed Project Agreement No. 10 with 4Leaf, Inc.
+http://sccgov.iqm2.com/Citizens/FileOpen.aspx?Type=4&ID=201235
+
+Executed 1st Amendment to PA#7 with 4Leaf Inc.
+http://sccgov.iqm2.com/Citizens/FileOpen.aspx?Type=4&ID=156815
+
+Executed Project Agreement #5 with 4Leaf Inc
+http://sccgov.iqm2.com/Citizens/FileOpen.aspx?Type=4&ID=151102
+
+Executed 6th Amendment to PA with 4Leaf Inc
+http://sccgov.iqm2.com/Citizens/FileOpen.aspx?Type=4&ID=146004
+
+Executed Project Agreement No. 4 with 4Leaf, Inc.
+http://sccgov.iqm2.com/Citizens/FileOpen.aspx?Type=4&ID=189540
+
+Executed Project Agrement #5 for 4Leaf Inc.
+http://sccgov.iqm2.com/Citizens/FileOpen.aspx?Type=4&ID=200605
+
+Amendment 1 to PSA with 4LEAF-03-11-2016-signed copy
+http://sccgov.iqm2.com/Citizens/FileOpen.aspx?Type=4&ID=147847
+
+4LEAF Inc Service Agreement 4400007558 - Executed
+http://sccgov.iqm2.com/Citizens/FileOpen.aspx?Type=4&ID=189762
+
+Executed 4Leaf Inc PA#7
+http://sccgov.iqm2.com/Citizens/FileOpen.aspx?Type=4&ID=147398
+
+Department of Planning and Development
+http://sccgov.iqm2.com/Citizens/FileOpen.aspx?Type=4&ID=187233
+
+Agreement with 4Leaf
+http://sccgov.iqm2.com/Citizens/FileOpen.aspx?Type=4&ID=205986
+
+Coversheet for 4Leaf Inc PA#7
+http://sccgov.iqm2.com/Citizens/FileOpen.aspx?Type=4&ID=147399
+
+Department of Planning and Development
+http://sccgov.iqm2.com/Citizens/FileOpen.aspx?Type=4&ID=150126
+
+4leaf PSA FINAL
+http://sccgov.iqm2.com/Citizens/FileOpen.aspx?Type=4&ID=119038
+
+4LEAF Tenth Amendment Signed
+http://sccgov.iqm2.com/Citizens/FileOpen.aspx?Type=4&ID=171340
+
+Measure A Financial Report as of January 31, 2018
+http://sccgov.iqm2.com/Citizens/FileOpen.aspx?Type=4&ID=170051
+
+Measure A - Revised Report (Reports 1 through 4) as of December 31, 2
+http://sccgov.iqm2.com/Citizens/FileOpen.aspx?Type=4&ID=145751
+
+Measure A - (Reports 1 through 4) as of December 31, 2015
+http://sccgov.iqm2.com/Citizens/FileOpen.aspx?Type=4&ID=145743
+
+Financial Report Seismic Safety Project as of June 30, 2015
+http://sccgov.iqm2.com/Citizens/FileOpen.aspx?Type=4&ID=143276
+
+Financial Report Seismic Safety Project as of April 30, 2016
+http://sccgov.iqm2.com/Citizens/FileOpen.aspx?Type=4&ID=149660
+
+Executed 2nd Amendment with 4Leaf Inc.
+http://sccgov.iqm2.com/Citizens/FileOpen.aspx?Type=4&ID=156140
+
+Measure A Financial Report as of December 31, 2016
+http://sccgov.iqm2.com/Citizens/FileOpen.aspx?Type=4&ID=157728
+
+4LEAF Approval Request Beyond 5-Year Term Signed
+http://sccgov.iqm2.com/Citizens/FileOpen.aspx?Type=4&ID=171341
+
+Attachment 1 - FY2018 and FY 2019 Term Contracts
+http://sccgov.iqm2.com/Citizens/FileOpen.aspx?Type=4&ID=195000
+
+Off-agenda Report Actions Taken by the County's Purchasing Agent or De
+http://sccgov.iqm2.com/Citizens/FileOpen.aspx?Type=4&ID=197961
 
 
