@@ -32,7 +32,6 @@
                 <th style = "white-space: nowrap;">Effective<br/>Expiry Date</th>
                 <th>Months</th>
                 <th>Amount</th>
-                <th>Agencies</th>
                 <th>Description</th>
             </tr>
         </thead>
@@ -44,18 +43,11 @@
                 <td>{{ contract.effective_date }}<br/>{{ contract.expir_date }}</td>
                 <td>{{ contract.min_month }}<br/>{{ contract.max_month }}</td>
                 <td>{{ contract.contract_value }}</td>
-                <td>
-                  <ul>
-                  {% for agency in contract.agencies %}
-                      <li><a href="/contracts/scc/agency/{{ agency.pk }}">{{ agency.name }}</a></li>
-                  {% endfor %}
-                  </ul>
-                </td>
                 <td>{{ contract.commodity_desc }}</td>
                 <td></td>
             </tr>
             <tr>
-                <td colspan="5">
+                <td colspan="4">
                     <ul>
                         {% for urld in contract.urls %}
                         <li><a href="{{ urld.url }}">{{ urld.label }}</a></li>
