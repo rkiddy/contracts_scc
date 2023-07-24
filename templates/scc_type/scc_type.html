@@ -10,6 +10,7 @@
             {
                     "columns": [
                         {"name": "{{ thing_label }}", "orderable": true},
+                        {"name": "Count", "orderable": true},
                         {"name": "Total Costs", "orderable": true}
                     ]
                 }
@@ -36,6 +37,7 @@
       <thead>
         <tr>
           <th>{{ thing_label }}</th>
+          <th>Count</th>
           <th>Total Costs</th>
         </tr>
       </thead>
@@ -43,6 +45,7 @@
       {% for thing in things %}
       <tr>
         <td><a href="/contracts/scc/{{ thing_type }}/{{ thing.pk }}">{{ thing.name }}</a></td>
+        <td>{{ thing.total_count }}</td>
         <td>{{ thing.total_value }}</td>
       </tr>
       {% endfor %}

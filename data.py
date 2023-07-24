@@ -222,29 +222,9 @@ def fetch_contracts(month_pk, fetch_key=None, fetch_value=None):
         contracts_by_pk[c_pk]['values'] = [money(r) for r in next_values]
         contracts_by_pk[c_pk]['v_len'] = len(next_values)
 
-    # Attach the contracts to send on.
-    #
-    contracts = list(contracts_by_pk.values())
-
-    sql = "select ariba_id, contract_id, sap_id from supporting_docs"
-    columns = {
-        'ariba_id': 0,
-        'contract_id': 1,
-        'sap_id': 2
-    }
-    docs = dict()
-    for doc in fill_in_table(conn.execute(sql).fetchall(), columns):
-        cid = f"{doc['ariba_id']}-{doc['contract_id']}-{doc['sap_id']}"
-        if cid not in docs:
-            docs[cid] = 1
-        else:
-            docs[cid] += 1
-
-    for contract in contracts:
-
-        cid = f"{contract['ariba_id']}-{contract['contract_id']}-{contract['sap_id']}"
-        if cid in docs:
-            contract['docs'] = docs[cid]
+        # Attach the contracts to send on.
+        #
+        contracts = list(contracts_by_pk.values())
 
     return contracts
 
@@ -421,9 +401,11 @@ def build_type_data(type_info):
         sql = f"""
         select c1.vendor_pk,
             (select name from vendors where pk = c1.vendor_pk) as vendor_name,
-            sum(c1.contract_value) as value_sum
+            sum(c1.contract_value),
+            count(0)
         from contracts c1
-        where c1.month_pk = {month_pk} group by c1.vendor_pk
+        where c1.month_pk = {month_pk}
+        group by c1.vendor_pk
         """
 
     if type_info == 'agencies':
@@ -434,8 +416,11 @@ def build_type_data(type_info):
         select u1.pk, u1.unit_name,
             (select sum(c1.contract_value)
                 from contracts c1, budget_unit_joins j1
-                where c1.pk = j1.contract_pk and j1.unit_pk = u1.pk and c1.month_pk = {month_pk}) as total_value
-        from budget_units u1
+                where c1.pk = j1.contract_pk and j1.unit_pk = u1.pk and c1.month_pk = {month_pk}),
+            (select count(0)
+                from contracts c1, budget_unit_joins j1
+                where c1.pk = j1.contract_pk and j1.unit_pk = u1.pk and c1.month_pk = {month_pk})
+        from budget_units u1;
         """
 
     if type_info == 'descriptions':
@@ -443,7 +428,10 @@ def build_type_data(type_info):
         context['thing_type'] = 'desc'
 
         sql = f"""
-        select c1.commodity_desc, c1.commodity_desc, sum(c1.contract_value)
+        select c1.commodity_desc,
+            c1.commodity_desc,
+            sum(c1.contract_value),
+            count(0)
         from contracts c1
         where c1.month_pk = {month_pk}
         group by c1.commodity_desc
@@ -451,7 +439,7 @@ def build_type_data(type_info):
 
     things = fill_in_table(
         conn.execute(sql).fetchall(),
-        {'pk': 0, 'name': 1, 'total_value': 2})
+        {'pk': 0, 'name': 1, 'total_value': 2, 'total_count': 3})
 
     next_things = list()
     for thing in things:
