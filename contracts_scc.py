@@ -31,16 +31,9 @@ def contracts_main():
 @contracts_scc.route(f"/{cfg['WWW']}scc/all/")
 def contracts_all():
     main = env.get_template('scc_all/all.html')
-    context = data.all_contracts()
+    context = data.build_all_contracts()
     context['show_as'] = 'html'
     return main.render(**context)
-
-
-# @contracts_scc.route(f"/{cfg['WWW']}scc/pmods")
-# def contracts_price_mods():
-#     main = env.get_template('scc_main/price_mods.html')
-#     context = data.price_mods()
-#     return main.render(**context)
 
 
 @contracts_scc.route(f"/{cfg['WWW']}scc/vendor/<vendor_pk>")

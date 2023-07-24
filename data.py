@@ -249,7 +249,7 @@ def fetch_contracts(month_pk, fetch_key=None, fetch_value=None):
     return contracts
 
 
-def all_contracts():
+def build_all_contracts():
 
     context = {}
 
@@ -605,79 +605,6 @@ def collapse_values(lines: list) -> list:
 ctypes = {
     'a': 'ariba', 's': 'sap', 'c': 'contract'
 }
-
-
-def price_mods():
-    context = dict()
-
-    sql = "select * from contract_ids"
-    rows = db_exec(con_engine, sql)
-
-    contract_pks = dict()
-    ids = dict()
-
-    for row in rows:
-        cpk = row['contract_pk']
-        if cpk not in contract_pks:
-            contract_pks[cpk] = list()
-        contract_pks[cpk].append(f"{ctypes[row['id_type']]}: {row['id_value']}")
-
-    # now I have the id sets for each contract pk.
-
-    for cpk in contract_pks:
-        contract_pks[cpk] = sorted(contract_pks[cpk])
-        id_set = ' - '.join(contract_pks[cpk])
-        if id_set not in ids:
-            ids[id_set] = list()
-        ids[id_set].append(cpk)
-
-    # now I have the id sets, and which contract pks are attached to them.
-
-    contracts = dict()
-
-    for id_set in ids:
-        contract_infos = list()
-        contract_values = list()
-        for pk in ids[id_set]:
-            sql = f"""
-                select c1.vendor_name as vn, c1.effective_date as efd, c1.expir_date as exd, c1.contract_value as cv, m1.month as m
-                from contracts c1, months m1
-                where c1.pk = {pk} and c1.month_pk = m1.pk order by c1.pk
-            """
-            contract = db_exec(con_engine, sql)[0]
-            contract_infos.append(f"{contract['m']} {contract['vn']} {contract['efd']} {contract['exd']} {contract['cv']}")
-            contract_values.append(contract['cv'])
-
-        track_contract = False
-
-        if len(set(contract_values)) > 1:
-            track_contract = True
-
-        if len(set(contract_values)) == 2:
-            if contract_values[0] <= 100:
-                track_contract = False
-
-        if track_contract:
-
-            next_infos = collapse_values(contract_infos)
-            hi_value = contract_values[-1]
-            lo_value = contract_values[0]
-            if lo_value <= 100:
-                lo_value = contract_values[1]
-
-            diff = hi_value - lo_value
-            pct = int((hi_value / lo_value) * 100) - 100
-
-            contracts[id_set] = dict()
-            contracts[id_set]['values'] = next_infos
-            contracts[id_set]['start'] = next_infos[0][:7]
-            contracts[id_set]['end'] = next_infos[-1][11:18]
-            contracts[id_set]['diff'] = money(diff)
-            contracts[id_set]['pct'] = pct
-
-    context['contracts'] = contracts
-
-    return context
 
 
 def url_label(url):
