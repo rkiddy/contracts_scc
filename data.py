@@ -602,7 +602,11 @@ def url_label(url):
 def build_supporting_docs():
     context = dict()
 
-    sql = "select ariba_id, contract_id, sap_id, url from supporting_docs"
+    sql = """
+        select s1.ariba_id, s1.contract_id, s1.sap_id, s2.url
+        from supporting_doc_requests s1 inner join supporting_docs s2
+            on s2.request_pk = s1.pk
+    """
     rows = db_exec(conn, sql)
 
     urls = dict()
