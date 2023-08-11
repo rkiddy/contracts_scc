@@ -543,11 +543,12 @@ def build_scc_contract():
         contract['units'] = units[contract['contract_pk']]
 
     sql = f"""
-        select url
-        from supporting_docs
-        where ariba_id {ariba_id_str} and
-            contract_id {contract_id_str} and
-            sap_id {sap_id_str}
+        select s2.url
+        from supporting_doc_requests s1, supporting_docs s2
+        where s1.pk = s2.request_pk and
+            s1.ariba_id {ariba_id_str} and
+            s1.contract_id {contract_id_str} and
+            s1.sap_id {sap_id_str}
     """
     rows = db_exec(conn, sql)
     if rows is not None or len(rows) > 0:
