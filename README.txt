@@ -91,6 +91,7 @@ I have to change the code to use the correct TSV files.
 
 I have to change the code to use the correct month.
 
+
 mysql> insert into months values (43, '2023-06', unix_timestamp()*1000);
 
 mysql> insert into sources values (
@@ -106,14 +107,6 @@ mysql> insert into sources values (
     42,
     NULL
 );
-
-mysql> SHOW VARIABLES LIKE "secure_file_priv";
-+------------------+-----------------------+
-| Variable_name    | Value                 |
-+------------------+-----------------------+
-| secure_file_priv | /var/lib/mysql-files/ |
-+------------------+-----------------------+
-
 
 Data Questions:
 

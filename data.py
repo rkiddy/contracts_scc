@@ -451,9 +451,9 @@ def build_type_data(type_info):
     return context
 
 
-def build_scc_contract():
+def build_scc_contract(param):
 
-    parts = request.path.split('/')[-1].split('-')
+    parts = param.split('-')
 
     context = dict()
 

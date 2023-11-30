@@ -28,7 +28,7 @@
         a contract or contracts and they will send you electronic copies, after waiting
         the allowed time period. I have linked in the contract texts that I have received
         above. Click on the Contract ID links to see the details for the contract, which
-        will incude the contract documents. If anyone thinks that other contracts should
+        will include the contract documents. If anyone thinks that other contracts should
         be looked at, please let me know and they can be requested.
     </p>
     <h2>Importing</h2>
@@ -43,7 +43,7 @@
         The import scripts do some data correcting, but it is not much. There are many
         vendor names, for example, which are obviously incomplete. As I am able, I find
         the proper names for these vendors and I display these vendors with their proper
-        names. I do not replace the bad names in the original data. Instead I add a row
+        names. I do not replace the bad names in the original data. Instead, I add a row
         to a table which joins with the <code>vendors</code> table to provide the correction.
         I try to make all corrections by adding correct data, but not by removing the original
         data. If I replaced these original values, I would be breaking the connection
@@ -65,8 +65,14 @@
         causes some duplication. For example, if a contract ran from January 1, 2021 to May
         31, 2022 and if every month had a exported PO report, then there would be 17 rows
         in the contracts table for this contract. If the contract was written and never
-        changed, then all 17 rows would be exactly the same. Many contracts, though, do
-        change and I am keeping track of when those changes appear in the exported data.
+        changed, then all 17 rows would be exactly the same.
+    </p>
+    <p>
+        If you go to the "Contract Details" page for any contract, you will see a link
+        for "Show Historical". If you click on this, you will see the information for
+        this contract for any month in which the contract appears. This will show you
+        any changes to the value of the contract and changes to any other information
+        associated with the contract.
     </p>
     <p>
         At any one time, the contracts application is showing data relevant to the last
@@ -113,76 +119,17 @@ total value      $ 2,000,000.00    covers 2020-04-01 to 2022-03-31
     <p>
         There are three kinds of ID numbers for contracts. The reasons for this have to do
         with what system was being used to track a contract when it was first seen. In the
-        monthly "Contracts Report", these IDs appear under the "Contract ID Ariba" and "PO ID)"
-        heading. In the "SA BC Report", the ID appears under the "Contract ID (PO ID)" heading.
-        In how many contracts are which IDs defined? The data below shows the usage
-        of these IDs in the data for June of 2022.
-    <p>
-    <pre>
-    count    contract_id   ariba_id     sap_id
-    1327      NON_NULL      NULL         NULL
-     127      NULL          NON_NULL     NON_NULL
-     496      NULL          NON_NULL     NULL
-     271      NULL          NULL         NON_NULL</pre>
+        monthly "Contracts Report", these IDs appear under the "Contract ID Ariba" and "Contract ID SAP"
+        headings. In the "SA BC Report", the ID appears under the "Contract ID (PO ID)" heading.
     </p>
+    <h2>Linking Contract ID Numbers to Agencies</h2>
     <p>
-    I have recently noticed (July 2023) that there are two types of id sets. In one case, the
-    contracts are listed in a report with a title like 'Contracts Report for Month of April 2023.pdf'.
-    In this report, each contract has an Ariba Id, an SAP Id, or both and the set of these two is unique.
-    Also, A single contract can point to more than one agency. For example, a contract with an Ariba Id
-    number 'CW2239242' with 'VICTORY SUPPLY' relates to:
-    <ul>
-        <li>Dept. of Correction - 240</li>
-        <li>Sheriff's Office - 230</li>
-        <li>Sheriff's Court/Custody Oper. - 231</li>
-    </ul>
-    In the other case, the contracts are listed in a report with a title like 'SA BC Report for Month of
-    April 2023.pdf'. In this report, each contract has a Contract Id and only one agency is connected to
-    each row. But the Contract Id may appear on more than once. But the Contract Id, Agency pair is
-    unique.
-    </p>
-    <p>
-    Therefore, in order to track a contract from month to month, one must look for whichever pair of
-    values is appropriate. Of course, a contract can be amended and one of its Id numbers can change.
-    It is not clear how this can be tracked. One could combine the contract rows but the SA/BC report
-    shows how much money goes to each agency and the Contracts report does not, and it would not be
-    good to lose that detail.
-    </p>
-    <p>
-    An example is:
-    <pre>
-        Agency: Controller-Treasurer Dept - 110
-        Contract Id: 4300018669
-        Vendor: AYA HEALTHCARE INC
-        Start: 5/15/2020
-        End: 6/30/2023
-        Amount: $ 95,885,456.93
-        Dewscription: Consulting Services
-
-        Agency: Facilities and Fleet Department - 263
-        Contract Id: 4300018669
-        Vendor: AYA HEALTHCARE INC
-        Start: 5/15/2020
-        End: 6/30/2023
-        Amount: $ 5,000,000.00
-        Dewscription: Consulting Services
-
-        Agency: Health & Hospital Systems - 921
-        Contract Id: 4300018669
-        Vendor: AYA HEALTHCARE INC
-        Start: 5/15/2020
-        End: 6/30/2023
-        Amount: $ 38,370,967.07
-        Dewscription: Consulting Services
-    </pre>
-    This vendor has other contracts and, as makes sense, they have different Contract Id numbers.
-    </p>
-    <p>
-    The only place we actually need to identity the contract is when we are relating documents to
-    a contract. And listing the contracts multiple times is not unforgivable. If there are three
-    documents for the contract above, showing those three documents three different times should not
-    be a problem. A page that shows a single contract and its history would want to combine these
-    contracts into one.
+         The "Contracts Report" shows multiple agencies under the "Authorized Users" column. The
+        "SA BC Report" shows only one agency in each row, but it may show duplicate rows in the PDF
+        file for the "Contract ID" value. What this means is that in the "Contracts Report", the
+        "Contract ID Ariba" and "Contract ID SAP" pair uniquely identify the row in that PDF. In the
+        "SA BC Report", the "Contract ID" value does not uniquely identify a contract, but the
+        "Contract ID"-"Budget Unit Name" pair does uniquely identify the row.
     </p>
     </div>
 </body>

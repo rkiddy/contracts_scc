@@ -37,6 +37,8 @@ def imports_main():
     """
     rows = db_exec(conn, sql)
 
+    print(f"rows: {rows}")
+
     months = dict()
     for row in rows:
         if row['month'] not in months:
@@ -261,12 +263,15 @@ def fetch_units():
     rows = db_exec(conn, "select * from budget_unit_names")
     for row in rows:
         unit_names[row['name']] = row['unit_pk']
+    pass
 
 
 def unit_pks_for_names(names):
     pks = list()
     for name in names:
         # TODO WHY do I have to do this here? I should not!
+        if name.startswith('Board'):
+            pass
         name = fix_unit_name(name)
         if name not in unit_names:
             raise Exception(f"Cannot find unit with name: '{name}'")
@@ -299,10 +304,10 @@ def fetch_source_pks(month_pk):
 
 def add_month(request):
     month_nums = request.form.get('month')
-    source_url1 = request.form.get('source_url1')
-    alt_url1 = request.form.get('alt_url1')
-    source_url2 = request.form.get('source_url2')
-    alt_url2 = request.form.get('alt_url2')
+    source_url1 = request.form.get('source_url1').replace('%20', ' ')
+    alt_url1 = request.form.get('alt_url1').replace('%20', ' ')
+    source_url2 = request.form.get('source_url2').replace('%20', ' ')
+    alt_url2 = request.form.get('alt_url2').replace('%20', ' ')
     now = int(dt.datetime.now().timestamp() * 1000)
     month_pk = fetch_max_pk('months')
 
@@ -313,52 +318,12 @@ def add_month(request):
 
     sql = f"""
         insert into sources values
-        ({sources_pk+1},  '{source_url1}', '{alt_url1}', {month_pk+1}, NULL),
-        ({sources_pk+2},  '{source_url2}', '{alt_url2}', {month_pk+1}, NULL)
+        ({sources_pk+1},  '{source_url1}', '{alt_url1}', {month_pk+1}),
+        ({sources_pk+2},  '{source_url2}', '{alt_url2}', {month_pk+1})
     """
+    print(f"sql: {sql}")
     db_exec(conn, sql)
     print(f"Created: month = {month_nums}")
-
-
-def import_scan():
-    context = dict()
-
-    rows = list()
-
-    file = "/tmp/import/SA BC Report for Month of June 2023.tsv"
-    with open(file, 'r') as sabc_file:
-
-        for line in sabc_file:
-
-            if not line_is_header(line):
-
-                parts = line.strip('\r').split('\t')
-                row = sabc_data(parts)
-                rows.append(row)
-
-    bad_lines = list()
-    file = "/tmp/import/Contracts Report for Month of June 2023_0.tsv"
-    with open(file, 'r') as contracts_file:
-
-        for line in contracts_file:
-
-            if not line_is_header(line):
-
-                parts = line.strip('\r').split('\t')
-
-                if len(parts) != 9:
-                    bad_lines.append(parts)
-                else:
-                    for row in fix_bad_lines(bad_lines):
-                        rows.append(row)
-                        bad_lines = list()
-
-                    row = contract_data(parts)
-                    rows.append(row)
-
-    print(f"rows #: {len(rows)}")
-    context['rows'] = rows
-    return context
 
 
 def add_to_sql(cols, values, col, value):
@@ -368,98 +333,203 @@ def add_to_sql(cols, values, col, value):
         values.append(sql_safe(value))
 
 
-def import_save():
-    context = import_scan()
+def imports(action, form):
+    context = dict()
+    context['action'] = action
 
-    max_con_pk = fetch_max_pk('contracts')
-    max_cid_pk = fetch_max_pk('contract_ids')
+    if action == 'prepare':
+        sql = "select month, substr(from_unixtime(approved/1000),1,16) as approved from months order by pk desc;"
+        context['months'] = db_exec(conn, sql)
 
-    mpk = fetch_max_month_pk()
+    if action == 'add_month':
+        next_month = form['next_month']
+        print(f"next_month: {next_month}")
 
-    source_pks = fetch_source_pks(mpk)
+        # Make sure we do not double-add the month.
+        #
+        sql = f"select * from months where month = '{next_month}'"
+        rows = db_exec(conn, sql)
+        if len(rows) > 0:
+            pk = rows[0]['pk']
+        else:
+            now = int(dt.datetime.now().timestamp() * 1000)
+            pk = fetch_max_pk('months') + 1
+            sql = f"insert into months values ({pk}, '{next_month}', {now})"
+            db_exec(conn, sql)
 
-    fetch_units()
+        context['month'] = next_month
+        context['month_pk'] = pk
+        context['action'] = 'add_sources'
 
-    con_pk = max_con_pk + 1
-    cid_pk = max_cid_pk + 1
+    if action == 'add_sources':
 
-    inserts = list()
+        month_pk = form['month_pk']
+        pk1 = fetch_max_pk('sources') + 1
+        pk2 = pk1 + 1
 
-    rows = context['rows']
-
-    for row in rows:
-
-        row['v_pk'] = vendor_pk_for_name(row['v_name'])
-
-        row['unit_pks'] = unit_pks_for_names(row['units'])
-
-        if row['con_id'] != '':
-            sql = f"({cid_pk}, {con_pk}, 'c', '{row['con_id']}')"
-            inserts.append(f"insert into contract_ids values {sql}")
-            cid_pk += 1
-
-        if row['ariba_id'] != '':
-            sql = f"({cid_pk}, {con_pk}, 'a', '{row['ariba_id']}')"
-            inserts.append(f"insert into contract_ids values {sql}")
-            cid_pk += 1
-
-        if row['sap_id'] != '':
-            sql = f"({cid_pk}, {con_pk}, 's', '{row['sap_id']}')"
-            inserts.append(f"insert into contract_ids values {sql}")
-            cid_pk += 1
-
-        for unit_pk in row['unit_pks']:
-            inserts.append(f"insert into budget_unit_joins values ({unit_pk}, {con_pk})")
-
-        c = list()
-        v = list()
-
-        c.append('pk')
-        v.append(str(con_pk))
-
-        if row['owner_name'] != '':
-            add_to_sql(c, v, 'owner_name', row['owner_name'])
-
-        if row['ariba_id'] != '':
-            add_to_sql(c, v, 'ariba_id', row['ariba_id'])
-
-        if row['sap_id'] != '':
-            add_to_sql(c, v, 'sap_id', row['sap_id'])
-
-        if row['con_id'] != '':
-            add_to_sql(c, v, 'contract_id', row['con_id'])
-
-        add_to_sql(c, v, 'vendor_name', row['v_name'])
-
-        c.append('vendor_pk')
-        v.append(str(row['v_pk']))
-
-        add_to_sql(c, v, 'effective_date', row['eff_date'])
-
-        add_to_sql(c, v, 'expir_date', row['exp_date'])
-
-        c.append('contract_value')
-        v.append(row['con_value'])
-
-        add_to_sql(c, v, 'commodity_desc', row['descrip'])
-
-        c.append('month_pk')
-        v.append(str(mpk))
-
-        c.append('source_pk')
-        v.append(str(source_pks[row['doc_type']]))
-
-        c = ', '.join(c)
-        v = ', '.join(v)
-
-        inserts.append(f"insert into contracts ({c}) values ({v})")
-
-        con_pk += 1
-
-    for sql in inserts:
-        print(sql)
+        # TODO do not worry about adding duplicates for now.
+        #
+        url = form['source_1_url']
+        url_alt = form['source_1_url_alt']
+        sql = f"insert into sources values ({pk1}, '{url}', '{url_alt}', {month_pk})"
         db_exec(conn, sql)
 
+        url = form['source_2_url']
+        url_alt = form['source_2_url_alt']
+        sql = f"insert into sources values ({pk2}, '{url}', '{url_alt}', {month_pk})"
+        db_exec(conn, sql)
+
+        context = dict(form)
+        context['action'] = 'add_data'
+
+        print(f"context: {context}")
+
+    if action == 'add_data':
+        print("DO EVERYTHING")
+        print(f"form: {form}")
+        print(f"context: {context}")
+
+        rows = list()
+
+        if '/Contracts' in form['source_1_url']:
+            con_url = form['source_1_url']
+            sabc_url = form['source_2_url']
+        else:
+            con_url = form['source_2_url']
+            sabc_url = form['source_1_url']
+
+        con_filename = con_url.split('/')[-1].replace('%20', ' ').replace('.pdf', '.tsv')
+        sabc_filename = sabc_url.split('/')[-1].replace('%20', ' ').replace('.pdf', '.tsv')
+
+        con_file = f"/tmp/import/{con_filename}"
+        sabc_file = f"/tmp/import/{sabc_filename}"
+
+        # TODO call the sabd and contracts file reads as method calls here.
+
+        with open(sabc_file, 'r') as sabc_fd:
+
+            for line in sabc_fd:
+
+                if not line_is_header(line):
+                    parts = line.strip('\r').split('\t')
+                    row = sabc_data(parts)
+                    rows.append(row)
+
+        bad_lines = list()
+        with open(con_file, 'r') as con_fd:
+
+            for line in con_fd:
+
+                if not line_is_header(line):
+
+                    parts = line.strip('\r').split('\t')
+
+                    if len(parts) != 9:
+                        bad_lines.append(parts)
+                    else:
+                        for row in fix_bad_lines(bad_lines):
+                            rows.append(row)
+                            bad_lines = list()
+
+                        row = contract_data(parts)
+                        rows.append(row)
+
+        max_con_pk = fetch_max_pk('contracts')
+        max_cid_pk = fetch_max_pk('contract_ids')
+
+        mpk = fetch_max_month_pk()
+
+        source_pks = fetch_source_pks(mpk)
+
+        fetch_units()
+
+        con_pk = max_con_pk + 1
+        cid_pk = max_cid_pk + 1
+
+        inserts = list()
+
+        for row in rows:
+
+            row['v_pk'] = vendor_pk_for_name(row['v_name'])
+
+            row['unit_pks'] = unit_pks_for_names(row['units'])
+
+            if row['con_id'] != '':
+                sql = f"({cid_pk}, {con_pk}, 'c', '{row['con_id']}')"
+                inserts.append(f"insert into contract_ids values {sql}")
+                cid_pk += 1
+
+            if row['ariba_id'] != '':
+                sql = f"({cid_pk}, {con_pk}, 'a', '{row['ariba_id']}')"
+                inserts.append(f"insert into contract_ids values {sql}")
+                cid_pk += 1
+
+            if row['sap_id'] != '':
+                sql = f"({cid_pk}, {con_pk}, 's', '{row['sap_id']}')"
+                inserts.append(f"insert into contract_ids values {sql}")
+                cid_pk += 1
+
+            for unit_pk in row['unit_pks']:
+                inserts.append(f"insert into budget_unit_joins values ({unit_pk}, {con_pk})")
+
+            c = list()
+            v = list()
+
+            c.append('pk')
+            v.append(str(con_pk))
+
+            if row['owner_name'] != '':
+                add_to_sql(c, v, 'owner_name', row['owner_name'])
+
+            if row['ariba_id'] != '':
+                ariba_id = row['ariba_id']
+                if ariba_id.startswith('anCW'):
+                    ariba_id = ariba_id[2:]
+                add_to_sql(c, v, 'ariba_id', ariba_id)
+
+            if row['sap_id'] != '':
+                add_to_sql(c, v, 'sap_id', row['sap_id'])
+
+            if row['con_id'] != '':
+                con_id = row['con_id']
+                if con_id.startswith('ices'):
+                    con_id = con_id[5:]
+                if con_id.startswith('Mgmt'):
+                    con_id = con_id[5:]
+                add_to_sql(c, v, 'contract_id', con_id)
+
+            add_to_sql(c, v, 'vendor_name', row['v_name'])
+
+            c.append('vendor_pk')
+            v.append(str(row['v_pk']))
+
+            add_to_sql(c, v, 'effective_date', row['eff_date'])
+
+            add_to_sql(c, v, 'expir_date', row['exp_date'])
+
+            c.append('contract_value')
+            v.append(row['con_value'])
+
+            add_to_sql(c, v, 'commodity_desc', row['descrip'])
+
+            c.append('month_pk')
+            v.append(str(mpk))
+
+            c.append('source_pk')
+            v.append(str(source_pks[row['doc_type']]))
+
+            c = ', '.join(c)
+            v = ', '.join(v)
+
+            inserts.append(f"insert into contracts ({c}) values ({v})")
+
+            con_pk += 1
+
+        for sql in inserts:
+            print(sql)
+            db_exec(conn, sql)
+
+        context['action'] = 'done'
+        print("DONE")
+
     return context
-
-
