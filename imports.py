@@ -1,8 +1,9 @@
+import datetime as dt
+import os
 import re
 
 from dotenv import dotenv_values
 from sqlalchemy import create_engine
-import datetime as dt
 
 cfg = dotenv_values(".env")
 
@@ -273,6 +274,8 @@ def unit_pks_for_names(names):
         if name.startswith('Board'):
             pass
         name = fix_unit_name(name)
+        print(f"name: {name}")
+
         if name not in unit_names:
             raise Exception(f"Cannot find unit with name: '{name}'")
         pks.append(unit_names[name])
@@ -285,7 +288,7 @@ def fetch_max_pk(table):
 
 
 def fetch_max_month_pk():
-    sql = "select max(pk) as pk from months where approved is not NULL"
+    sql = "select max(pk) as pk from months"
     return int(db_exec(conn, sql)[0]['pk'])
 
 
@@ -293,12 +296,15 @@ def fetch_source_pks(month_pk):
     pks = dict()
     sql = f"select pk, source_url from sources where month_pk = {month_pk}"
     for row in db_exec(conn, sql):
+        print(f"row: {row}")
         url = row['source_url']
         if '/Contracts' in url:
             pks['CON'] = row['pk']
         if '/SA' in url:
             pks['SA'] = row['pk']
             pks['BC'] = row['pk']
+    if 'CON' not in pks or 'SA' not in pks or 'BC' not in pks:
+        raise Exception(f"Bad sources list: Started with {rows}")
     return pks
 
 
@@ -333,6 +339,14 @@ def add_to_sql(cols, values, col, value):
         values.append(sql_safe(value))
 
 
+def latest_contracts_file():
+    return [r for r in os.listdir('/tmp/import') if re.match('Contracts', r) and r.endswith('.tsv')][0]
+
+
+def latest_sabc_file():
+    return [r for r in os.listdir('/tmp/import') if re.match('SA\-BC', r) and r.endswith('.tsv')][0]
+
+
 def imports(action, form):
     context = dict()
     context['action'] = action
@@ -364,6 +378,9 @@ def imports(action, form):
     if action == 'add_sources':
 
         month_pk = form['month_pk']
+
+        context = dict(form)
+
         pk1 = fetch_max_pk('sources') + 1
         pk2 = pk1 + 1
 
@@ -379,7 +396,6 @@ def imports(action, form):
         sql = f"insert into sources values ({pk2}, '{url}', '{url_alt}', {month_pk})"
         db_exec(conn, sql)
 
-        context = dict(form)
         context['action'] = 'add_data'
 
         print(f"context: {context}")
@@ -391,18 +407,10 @@ def imports(action, form):
 
         rows = list()
 
-        if '/Contracts' in form['source_1_url']:
-            con_url = form['source_1_url']
-            sabc_url = form['source_2_url']
-        else:
-            con_url = form['source_2_url']
-            sabc_url = form['source_1_url']
+        con_file = f"/tmp/import/{latest_contracts_file()}"
+        sabc_file = f"/tmp/import/{latest_sabc_file()}"
 
-        con_filename = con_url.split('/')[-1].replace('%20', ' ').replace('.pdf', '.tsv')
-        sabc_filename = sabc_url.split('/')[-1].replace('%20', ' ').replace('.pdf', '.tsv')
-
-        con_file = f"/tmp/import/{con_filename}"
-        sabc_file = f"/tmp/import/{sabc_filename}"
+        print(f"con_file: {con_file}, sabc_file: {sabc_file}")
 
         # TODO call the sabd and contracts file reads as method calls here.
 
@@ -434,12 +442,19 @@ def imports(action, form):
                         row = contract_data(parts)
                         rows.append(row)
 
+        print(f"rows # {len(rows)}")
+
+        doc_types = list(set([row['doc_type'] for row in rows]))
+        print(f"doc_types: {doc_types}")
+
         max_con_pk = fetch_max_pk('contracts')
         max_cid_pk = fetch_max_pk('contract_ids')
 
         mpk = fetch_max_month_pk()
+        print(f"month_pk: {mpk}")
 
         source_pks = fetch_source_pks(mpk)
+        print(f"source_pks: {source_pks}")
 
         fetch_units()
 
@@ -451,6 +466,8 @@ def imports(action, form):
         for row in rows:
 
             row['v_pk'] = vendor_pk_for_name(row['v_name'])
+
+            print(f"row[units]: {row['units']}")
 
             row['unit_pks'] = unit_pks_for_names(row['units'])
 
