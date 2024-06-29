@@ -2,7 +2,7 @@
 import sys
 
 from dotenv import dotenv_values
-from flask import Flask, request, redirect
+from flask import Flask, request
 from jinja2 import Environment, PackageLoader
 
 import data
@@ -83,10 +83,12 @@ def contracts_docs():
     return contract.render(**context)
 
 
-# use imports/prepare to start the import process.
+# use imports/prepare/<key> to start the import process.
 #
-@contracts_scc.route(f"/{cfg['WWW']}scc/imports/<action>", methods=['GET', 'POST'])
-def contracts_imports(action):
+@contracts_scc.route(f"/{cfg['WWW']}scc/imports/<action>/<key>", methods=['GET', 'POST'])
+def contracts_imports(action, key=None):
+    if key != cfg['ADMIN_KEY']:
+        raise Exception("Sorry, please use the proper admin key.")
     contract = env.get_template('imports.html')
     context = imports.imports(action, request.form)
     return contract.render(**context)
