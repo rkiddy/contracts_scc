@@ -83,6 +83,8 @@ def contracts_docs():
     return contract.render(**context)
 
 
+# use imports/prepare to start the import process.
+#
 @contracts_scc.route(f"/{cfg['WWW']}scc/imports/<action>", methods=['GET', 'POST'])
 def contracts_imports(action):
     contract = env.get_template('imports.html')
