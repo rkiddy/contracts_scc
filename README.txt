@@ -67,46 +67,46 @@ awk '{print "insert into contract_ids values ("NR", "$1", '\''"$2"'\'', '\''"$3"
 
 Import Workarounds:
 
-As of now:
-
-I have to download the PDF files manually.
-
-I have to create an import directory manually, usually /tmp/import.
-
-I have to run the tabula tool manually.
-
-This script can be used to run the PDF scanning with tabula:
-
-#!/bin/bash
-
-java -jar ~/Projects/tabula/tabula-1.0.4-SNAPSHOT-jar-with-dependencies.jar \
-    --batch /tmp/import \
-    --lattice \
-    --format TSV \
-    --pages all
-
-I think I have to add the month data and source data manually.
-
-I have to change the code to use the correct TSV files.
-
-I have to change the code to use the correct month.
+As of 2024-03-20:
 
 
-mysql> insert into months values (43, '2023-06', unix_timestamp()*1000);
+Before 2024-03:
 
-mysql> insert into sources values (
-    83,
-    'https://procurement.sccgov.org/sites/g/files/exjcpb696/files/document/Contracts%20Report%20for%20Month%20of%20May%202023.pdf',
-    'https://opencalaccess.org/contracts_scc/exports/2023-05/Contracts%20Report%20for%20Month%20of%20May%202023.pdf',
-    42,
-    NULL
-), (
-    84,
-    'https://procurement.sccgov.org/sites/g/files/exjcpb696/files/document/SA%20BC%20Report%20for%20Month%20of%20May%202023.pdf',
-    'https://opencalaccess.org/contracts_scc/exports/2023-05/SA%20BC%20Report%20for%20Month%20of%20May%202023.pdf',
-    42,
-    NULL
-);
+Download the PDF files manually.
+
+Create an import directory manually, usually /tmp/import.
+
+Upload the source PDF files to the alternate location. You do have one, do you not?
+
+     % cd /tmp/import
+     % ssh you@yours.com mkdir \-p /var/www/YOUR_SITE/contracts_scc/exports/2023-12/
+     % scp *.pdf ray@opencal:/var/www/YOUR_SITE/contracts_scc/exports/2023-12/
+
+To generate the TSV files from the PDF files, use this script to run the PDF scanning with tabula.
+
+     % java -jar ~/Projects/tabula/tabula-1.0.4-SNAPSHOT-jar-with-dependencies.jar \
+         --batch /tmp/import \
+         --lattice \
+         --format TSV \
+         --pages all
+
+     ls /tmp/import/*tsv
+
+Then I start a local version of the application.
+
+     % ./.venv/bin/python -m flask run
+
+Go to: http://localhost:8080/contracts/scc/imports/prepare
+
+This allows me to add the new month object and the sources.
+
+Then go to: http://localhost:8080/contracts/scc/imports/add_data
+
+This, if it runs successfully, will add all of the data for the new month.
+
+================================================================================
+
+And now:
 
 Data Questions:
 
