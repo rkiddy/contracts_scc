@@ -26,6 +26,7 @@
         <li><a data-target="#agencies" data-toggle="tab">By Agency</a></li>
         <li><a data-target="#costs" data-toggle="tab">By Cost</a></li>
         <li><a data-target="#descriptions" data-toggle="tab">By Description</a></li>
+        <li><a data-target="#expirations" data-toggle="tab">By Expiry Date</a></li>
     </ul>
 
     <div class="tab-content">
@@ -40,6 +41,9 @@
         </div>
         <div class="tab-pane" id="descriptions">
             {% include "scc_main/top_descriptions.html" %}
+        </div>
+        <div class="tab-pane" id="expirations">
+            {% include "scc_main/top_expirations.html" %}
         </div>
     </div>
     {% include "scc_main/sources.html" %}

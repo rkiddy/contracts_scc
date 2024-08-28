@@ -1,5 +1,5 @@
 
-from datetime import datetime as dt
+from datetime import datetime as dt, timedelta
 
 from dotenv import dotenv_values
 from flask import request
@@ -287,6 +287,28 @@ def bucket_contracts(bucket):
     return context
 
 
+def plus_one_month(d):
+    first = f"{d}-01"
+    first_dt = dt.strptime(first, "%Y-%m-%d")
+    next_date = first_dt + timedelta(days=31)
+    return next_date.strftime('%Y-%m')
+
+
+def months_list():
+
+    months_found = list()
+
+    sql = "select month from months order by month desc"
+    month = db_exec(conn, sql)[0]['month']
+    months_found.append(month)
+
+    for t in range(7):
+        month = plus_one_month(month)
+        months_found.append(month)
+
+    return months_found
+
+
 def build_scc_main():
 
     context = dict()
@@ -295,45 +317,98 @@ def build_scc_main():
     context['current_month'] = month
     context['current_year'] = month.split('-')[0]
 
+    # VENDORS section:
+
     top_vendors_sql = f"""
-    select v1.pk as vendorPk, v1.name as vendor_name,
-    sum(c1.contract_value) as total_value
-    from contracts c1, vendors v1
-    where c1.vendor_pk = v1.pk
-    and c1.month_pk = {month_pk}
-    group by v1.pk order by total_value desc limit 5
+                      select v1.pk as vendorPk, v1.name as vendor_name,
+                             sum(c1.contract_value) as total_value
+                      from contracts c1, vendors v1
+                      where c1.vendor_pk = v1.pk and
+                            c1.month_pk = {month_pk}
+                      group by v1.pk order by total_value desc limit 5
     """
 
     context['top_vendors'] = fill_in_table(
         conn.execute(top_vendors_sql).fetchall(),
         {'pk': 0, 'name': 1, 'amount': 2})
 
+    # AGENCIES section:
+
     top_agencies_sql = f"""
-    select unit_pk as agency_pk,
-        (select unit_name from budget_units where pk = agency_pk) as agency_name,
-        (select sum(c1.contract_value)
-    from contracts c1, budget_unit_joins j1
-    where c1.pk = j1.contract_pk and
-        j1.unit_pk = agency_pk and
-        c1.month_pk = {month_pk}) as total_value
-    from budget_unit_joins group by unit_pk
-    order by total_value desc limit 5
+                       select unit_pk as agency_pk,
+                              (select unit_name from budget_units where pk = agency_pk) as agency_name,
+                              (select sum(c1.contract_value)
+                       from contracts c1, budget_unit_joins j1
+                       where c1.pk = j1.contract_pk and
+                             j1.unit_pk = agency_pk and
+                             c1.month_pk = {month_pk}) as total_value
+                       from budget_unit_joins group by unit_pk
+                       order by total_value desc limit 5
     """
 
     context['top_agencies'] = fill_in_table(
         conn.execute(top_agencies_sql).fetchall(),
         {'pk': 0, 'name': 1, 'amount': 2})
 
+    # DESCRIPTIONS section:
+
     top_descs_sql = f"""
-    select commodity_desc as description,
-    sum(contract_value) as total_value
-    from contracts where month_pk = {month_pk}
-    group by commodity_desc order by total_value desc limit 5
+                    select commodity_desc as description,
+                           sum(contract_value) as total_value
+                    from contracts where month_pk = {month_pk}
+                    group by commodity_desc
+                    order by total_value desc limit 5
     """
 
     context['top_descs'] = fill_in_table(
         conn.execute(top_descs_sql).fetchall(),
         {'name': 0, 'amount': 1})
+
+    # EXPIRATION DATES section
+
+    expirs = list()
+
+    months = months_list()
+
+    sql = f"""
+          select '{months[0]}' as month, sum(contract_value) as total_value
+          from contracts where month_pk = {month_pk} and
+               (expir_date like '{months[0]}-%%' or expir_date < '{months[0]}')
+          """
+
+    row = db_exec(conn, sql)[0]
+
+    row['month'] = f"{row['month']} and previous"
+    expirs.append(row)
+
+    for month in months[1:-1]:
+        sql = f"""
+              select '{month}' as month, sum(contract_value) as total_value
+              from contracts where month_pk = {month_pk} and expir_date like '{month}-%%'
+              """
+
+        row = db_exec(conn, sql)[0]
+        expirs.append(row)
+
+    next_month = f"{plus_one_month(months[-1])}-01"
+
+    sql = f"""
+          select '{months[-1]}' as month, sum(contract_value) as total_value
+          from contracts where month_pk = {month_pk} and
+               (expir_date like '{months[-1]}-%%' or expir_date >= '{next_month}')
+          """
+
+    row = db_exec(conn, sql)[0]
+
+    row['month'] = f"{row['month']} and later"
+
+    expirs.append(row)
+
+    print(f"expirs: {expirs}")
+
+    context['top_expirys'] = fill_in_table(expirs, {'name': 0, 'amount': 1})
+
+    # COSTS section
 
     costs_tables = list()
     bucket_min = 0
@@ -342,10 +417,10 @@ def build_scc_main():
     for idx in range(len(cost_buckets.keys())):
 
         costs_sql = f"""
-        select c1.pk, c1.contract_value from contracts c1
-        where c1.month_pk = {month_pk}
-            and c1.contract_value >= {bucket_min * 100}
-            and c1.contract_value < {bucket_max * 100}
+                    select c1.pk, c1.contract_value from contracts c1
+                    where c1.month_pk = {month_pk} and
+                          c1.contract_value >= {bucket_min * 100} and
+                          c1.contract_value < {bucket_max * 100}
         """
 
         rows = conn.execute(costs_sql).fetchall()
@@ -366,8 +441,9 @@ def build_scc_main():
     context['costs'] = costs_tables
 
     sql = f"""
-    select count(0) as count, sum(contract_value) as sum_costs
-    from contracts where month_pk = {month_pk}
+          select count(0) as count, sum(contract_value) as sum_costs
+          from contracts
+          where month_pk = {month_pk}
     """
 
     row = conn.execute(sql).fetchone()
@@ -429,12 +505,18 @@ def build_type_data(type_info):
 
         sql = f"""
         select c1.commodity_desc,
-            c1.commodity_desc,
             sum(c1.contract_value),
             count(0)
         from contracts c1
         where c1.month_pk = {month_pk}
         group by c1.commodity_desc
+        """
+
+    if type_info == 'expirations':
+        context['thing_label'] = 'Expirations'
+        context['thing_type'] = 'expiry'
+
+        sql = f"""
         """
 
     things = fill_in_table(
