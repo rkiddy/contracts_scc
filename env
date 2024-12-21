@@ -1,0 +1,9 @@
+FLASK_APP=app
+FLASK_ENV=development
+FLASK_DEBUG=1
+FLASK_RUN_PORT=8080
+APP_HOME=/home/ray/Projects/app
+USR=__me__
+HOST=localhost
+PWD=__zekret__
+WWW=__db__

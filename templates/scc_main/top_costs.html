@@ -10,7 +10,7 @@
         </tr>
       </thead>
       <tbody>
-        {% for cost in costs %}
+        {% for cost in top_costs %}
         <tr>
           <td>{{ cost.bucket_label }}</td>
           <td id="bucket_{{ cost.bucket }}"><a href="/contracts/scc/bucket/{{ cost.bucket }}">{{ cost.count }}</a></td>

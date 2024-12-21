@@ -21,6 +21,11 @@ env = Environment(loader=PackageLoader('contracts_scc'))
 
 @contracts_scc.route(f"/{cfg['WWW']}scc/")
 def contracts_main():
+    """
+    Builds the front page. Uses templates for top_agency, top_costs, top_descriptions, top_vendors,
+    so it needs all these as keys in the context.
+    """
+
     main = env.get_template('scc_main/scc.html')
     context = data.build_scc_main()
     return main.render(**context)
@@ -80,24 +85,6 @@ def contracts_types(param):
 def contracts_docs():
     contract = env.get_template('scc_docs/supporting.html')
     context = data.build_supporting_docs()
-    return contract.render(**context)
-
-
-# use imports/prepare/<key> to start the import process.
-#
-@contracts_scc.route(f"/{cfg['WWW']}scc/imports/<action>/<key>", methods=['GET', 'POST'])
-def contracts_imports(action, key=None):
-    if key != cfg['ADMIN_KEY']:
-        raise Exception("Sorry, please use the proper admin key.")
-    contract = env.get_template('imports.html')
-    context = imports.imports(action, request.form)
-    return contract.render(**context)
-
-
-@contracts_scc.route(f"/{cfg['WWW']}scc/integrity")
-def contracts_integrity():
-    contract = env.get_template('integrity.html')
-    context = integrity.integrity_check()
     return contract.render(**context)
 
 

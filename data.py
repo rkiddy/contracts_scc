@@ -230,7 +230,6 @@ def fetch_contracts(month_pk, fetch_key=None, fetch_value=None):
 
 
 def build_all_contracts():
-
     context = {}
 
     [month_pk, month] = latest_month()
@@ -243,7 +242,6 @@ def build_all_contracts():
 
 
 def contracts_for_key_value(key, value):
-
     context = {}
 
     [month_pk, month] = latest_month()
@@ -310,6 +308,10 @@ def months_list():
 
 
 def build_scc_main():
+    """
+    Because the main page has the 5 tabs, all of the fetches need to be done here.
+    Uses tables: contracts, vendors, budget_unit_joins, budget_units.
+    """
 
     context = dict()
 
@@ -364,50 +366,6 @@ def build_scc_main():
         conn.execute(top_descs_sql).fetchall(),
         {'name': 0, 'amount': 1})
 
-    # EXPIRATION DATES section
-
-    expirs = list()
-
-    months = months_list()
-
-    sql = f"""
-          select '{months[0]}' as month, sum(contract_value) as total_value
-          from contracts where month_pk = {month_pk} and
-               (expir_date like '{months[0]}-%%' or expir_date < '{months[0]}')
-          """
-
-    row = db_exec(conn, sql)[0]
-
-    row['month'] = f"{row['month']} and previous"
-    expirs.append(row)
-
-    for month in months[1:-1]:
-        sql = f"""
-              select '{month}' as month, sum(contract_value) as total_value
-              from contracts where month_pk = {month_pk} and expir_date like '{month}-%%'
-              """
-
-        row = db_exec(conn, sql)[0]
-        expirs.append(row)
-
-    next_month = f"{plus_one_month(months[-1])}-01"
-
-    sql = f"""
-          select '{months[-1]}' as month, sum(contract_value) as total_value
-          from contracts where month_pk = {month_pk} and
-               (expir_date like '{months[-1]}-%%' or expir_date >= '{next_month}')
-          """
-
-    row = db_exec(conn, sql)[0]
-
-    row['month'] = f"{row['month']} and later"
-
-    expirs.append(row)
-
-    print(f"expirs: {expirs}")
-
-    context['top_expirys'] = fill_in_table(expirs, {'name': 0, 'amount': 1})
-
     # COSTS section
 
     costs_tables = list()
@@ -438,7 +396,9 @@ def build_scc_main():
         bucket_min = bucket_max
         bucket_max = bucket_max * 10
 
-    context['costs'] = costs_tables
+    context['top_costs'] = costs_tables
+
+    # MISCELLANEOUS values:
 
     sql = f"""
           select count(0) as count, sum(contract_value) as sum_costs
@@ -451,11 +411,16 @@ def build_scc_main():
     context['all_sum'] = money(row['sum_costs'])
 
     context['sources'] = dict()
-    sql = f"select source_url from sources where month_pk = {month_pk} and source_url like '%%/Contract%%'"
-    context['sources']['contract_rpt'] = conn.execute(sql).fetchone()['source_url']
+    try:
+        sql = f"""select source_url from sources
+            where month_pk = {month_pk} and source_url like '%%ontract%%'"""
+        context['sources']['contract_rpt'] = conn.execute(sql).fetchone()['source_url']
 
-    sql = f"select source_url from sources where month_pk = {month_pk} and source_url like '%%/SA%%'"
-    context['sources']['sabc_rpt'] = conn.execute(sql).fetchone()['source_url']
+        sql = f"""select source_url from sources
+            where month_pk = {month_pk} and  source_url not like '%%onctract%%'"""
+        context['sources']['sabc_rpt'] = conn.execute(sql).fetchone()['source_url']
+    except:
+        pass
 
     return context
 
@@ -504,7 +469,8 @@ def build_type_data(type_info):
         context['thing_type'] = 'desc'
 
         sql = f"""
-        select c1.commodity_desc,
+        select NULL,
+            c1.commodity_desc,
             sum(c1.contract_value),
             count(0)
         from contracts c1
